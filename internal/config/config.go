@@ -16,7 +16,7 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		ServerAddress: getEnv("SERVER_ADDRESS", ":8080"),
-		DatabaseURL:   getEnv("DATABASE_URL", "postgresql://molu:incorrect@localhost:5432/youtube?sslmode=disable"),
+		DatabaseURL:   getEnv("DATABASE_URL", "postgresql://molu:incorrect@localhost:5432/sms?sslmode=disable"),
 		Environment:   getEnv("ENVIRONMENT", "development"),
 		JWTSecret:     getEnv("JWT_SECRET", "your-secret-key"),
 	}

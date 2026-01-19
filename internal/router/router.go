@@ -21,6 +21,7 @@ func New(queries *db.Queries, jwtSecret string) http.Handler {
 	transferHandler := handlers.NewTransferHandler(queries)
 	stocktakeHandler := handlers.NewStocktakeHandler(queries)
 	warehouseHandler := handlers.NewWarehouseHandler(queries)
+	supplierHandler := handlers.NewSupplierHandler(queries) // Add this line
 
 	// Global middleware
 	r.Use(middleware.Logger)
@@ -122,6 +123,19 @@ func New(queries *db.Queries, jwtSecret string) http.Handler {
 	locations.HandleFunc("/{id}", warehouseHandler.GetLocation).Methods("GET")
 	locations.HandleFunc("/{id}", warehouseHandler.UpdateLocation).Methods("PUT")
 	locations.HandleFunc("/{id}", warehouseHandler.DeactivateLocation).Methods("DELETE")
+
+	suppliers := api.PathPrefix("/suppliers").Subrouter()
+	suppliers.HandleFunc("", supplierHandler.List).Methods("GET")
+	suppliers.HandleFunc("", supplierHandler.Create).Methods("POST")
+	suppliers.HandleFunc("/active", supplierHandler.ListActive).Methods("GET") // MUST COME BEFORE /{id}
+	suppliers.HandleFunc("/code/{code}", supplierHandler.GetByCode).Methods("GET")
+	suppliers.HandleFunc("/search", supplierHandler.Search).Methods("GET")
+	suppliers.HandleFunc("/{id}", supplierHandler.Get).Methods("GET")
+	suppliers.HandleFunc("/{id}", supplierHandler.Update).Methods("PUT")
+	suppliers.HandleFunc("/{id}/deactivate", supplierHandler.Deactivate).Methods("POST")
+	suppliers.HandleFunc("/{id}/activate", supplierHandler.Activate).Methods("POST")
+	suppliers.HandleFunc("/{id}/products", supplierHandler.GetProducts).Methods("GET")
+	suppliers.HandleFunc("/{id}/performance", supplierHandler.GetPerformance).Methods("GET")
 
 	return r
 }

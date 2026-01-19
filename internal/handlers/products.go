@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -42,6 +43,7 @@ func (h *ProductHandler) List(w http.ResponseWriter, r *http.Request) {
 		Offset: offset,
 	})
 	if err != nil {
+		log.Printf("Error listing products: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch products")
 		return
 	}
@@ -62,7 +64,12 @@ func (h *ProductHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	product, err := h.queries.GetProduct(ctx, id)
 	if err != nil {
-		respondError(w, http.StatusNotFound, "Product not found")
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "Product not found")
+			return
+		}
+		log.Printf("Error getting product %d: %v", id, err)
+		respondError(w, http.StatusInternalServerError, "Failed to fetch product")
 		return
 	}
 
@@ -75,7 +82,12 @@ func (h *ProductHandler) GetBySKU(w http.ResponseWriter, r *http.Request) {
 
 	product, err := h.queries.GetProductBySKU(ctx, vars["sku"])
 	if err != nil {
-		respondError(w, http.StatusNotFound, "Product not found")
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "Product not found")
+			return
+		}
+		log.Printf("Error getting product by SKU %s: %v", vars["sku"], err)
+		respondError(w, http.StatusInternalServerError, "Failed to fetch product")
 		return
 	}
 
@@ -86,7 +98,7 @@ type CreateProductRequest struct {
 	SKU           string           `json:"sku"`
 	Name          string           `json:"name"`
 	Description   *string          `json:"description"`
-	CategoryID    int64            `json:"category_id"`
+	CategoryID    *int64           `json:"category_id"` // Make nullable
 	UnitPrice     decimal.Decimal  `json:"unit_price"`
 	CostPrice     decimal.Decimal  `json:"cost_price"`
 	Barcode       *string          `json:"barcode"`
@@ -94,9 +106,9 @@ type CreateProductRequest struct {
 	Dimensions    *string          `json:"dimensions"`
 	SupplierID    *int64           `json:"supplier_id"`
 	MinStockLevel int32            `json:"min_stock_level"`
-	MaxStockLevel int32            `json:"max_stock_level"`
-	ReorderPoint  int32            `json:"reorder_point"`
-	SafetyStock   int32            `json:"safety_stock"`
+	MaxStockLevel *int32           `json:"max_stock_level"` // Make nullable
+	ReorderPoint  *int32           `json:"reorder_point"`   // Make nullable
+	SafetyStock   *int32           `json:"safety_stock"`    // Make nullable
 	LeadTimeDays  *int32           `json:"lead_time_days"`
 	AutoReorder   bool             `json:"auto_reorder"`
 	IsActive      bool             `json:"is_active"`
@@ -107,7 +119,18 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
+		log.Printf("Error decoding request body: %v", err)
+		respondError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Validate required fields
+	if req.SKU == "" {
+		respondError(w, http.StatusBadRequest, "SKU is required")
+		return
+	}
+	if req.Name == "" {
+		respondError(w, http.StatusBadRequest, "Name is required")
 		return
 	}
 
@@ -137,12 +160,32 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Convert category ID
 	var categoryID sql.NullInt32
-	categoryID = sql.NullInt32{Int32: int32(req.CategoryID), Valid: true}
+	if req.CategoryID != nil {
+		categoryID = sql.NullInt32{Int32: int32(*req.CategoryID), Valid: true}
+	}
 
 	// Convert supplier ID
 	var supplierID sql.NullInt32
 	if req.SupplierID != nil {
 		supplierID = sql.NullInt32{Int32: int32(*req.SupplierID), Valid: true}
+	}
+
+	// Convert max stock level
+	var maxStockLevel sql.NullInt32
+	if req.MaxStockLevel != nil {
+		maxStockLevel = sql.NullInt32{Int32: *req.MaxStockLevel, Valid: true}
+	}
+
+	// Convert reorder point
+	var reorderPoint sql.NullInt32
+	if req.ReorderPoint != nil {
+		reorderPoint = sql.NullInt32{Int32: *req.ReorderPoint, Valid: true}
+	}
+
+	// Convert safety stock
+	var safetyStock sql.NullInt32
+	if req.SafetyStock != nil {
+		safetyStock = sql.NullInt32{Int32: *req.SafetyStock, Valid: true}
 	}
 
 	// Convert lead time days
@@ -163,15 +206,21 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Dimensions:    dimensions,
 		SupplierID:    supplierID,
 		MinStockLevel: req.MinStockLevel,
-		MaxStockLevel: sql.NullInt32{Int32: req.MaxStockLevel, Valid: true},
-		ReorderPoint:  sql.NullInt32{Int32: req.ReorderPoint, Valid: true},
-		SafetyStock:   sql.NullInt32{Int32: req.SafetyStock, Valid: true},
+		MaxStockLevel: maxStockLevel,
+		ReorderPoint:  reorderPoint,
+		SafetyStock:   safetyStock,
 		LeadTimeDays:  leadTimeDays,
 		AutoReorder:   req.AutoReorder,
 		IsActive:      req.IsActive,
 	})
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to create product")
+		log.Printf("Error creating product: %v", err)
+		// Check for specific errors
+		if err.Error() == "pq: duplicate key value violates unique constraint \"products_sku_key\"" {
+			respondError(w, http.StatusConflict, "Product with this SKU already exists")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "Failed to create product: "+err.Error())
 		return
 	}
 
@@ -191,7 +240,14 @@ func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
+		log.Printf("Error decoding request body: %v", err)
+		respondError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		respondError(w, http.StatusBadRequest, "Name is required")
 		return
 	}
 
@@ -221,12 +277,32 @@ func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Convert category ID
 	var categoryID sql.NullInt32
-	categoryID = sql.NullInt32{Int32: int32(req.CategoryID), Valid: true}
+	if req.CategoryID != nil {
+		categoryID = sql.NullInt32{Int32: int32(*req.CategoryID), Valid: true}
+	}
 
 	// Convert supplier ID
 	var supplierID sql.NullInt32
 	if req.SupplierID != nil {
 		supplierID = sql.NullInt32{Int32: int32(*req.SupplierID), Valid: true}
+	}
+
+	// Convert max stock level
+	var maxStockLevel sql.NullInt32
+	if req.MaxStockLevel != nil {
+		maxStockLevel = sql.NullInt32{Int32: *req.MaxStockLevel, Valid: true}
+	}
+
+	// Convert reorder point
+	var reorderPoint sql.NullInt32
+	if req.ReorderPoint != nil {
+		reorderPoint = sql.NullInt32{Int32: *req.ReorderPoint, Valid: true}
+	}
+
+	// Convert safety stock
+	var safetyStock sql.NullInt32
+	if req.SafetyStock != nil {
+		safetyStock = sql.NullInt32{Int32: *req.SafetyStock, Valid: true}
 	}
 
 	// Convert lead time days
@@ -247,15 +323,20 @@ func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Dimensions:    dimensions,
 		SupplierID:    supplierID,
 		MinStockLevel: req.MinStockLevel,
-		MaxStockLevel: sql.NullInt32{Int32: req.MaxStockLevel, Valid: true},
-		ReorderPoint:  sql.NullInt32{Int32: req.ReorderPoint, Valid: true},
-		SafetyStock:   sql.NullInt32{Int32: req.SafetyStock, Valid: true},
+		MaxStockLevel: maxStockLevel,
+		ReorderPoint:  reorderPoint,
+		SafetyStock:   safetyStock,
 		LeadTimeDays:  leadTimeDays,
 		AutoReorder:   req.AutoReorder,
 		IsActive:      req.IsActive,
 	})
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to update product")
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "Product not found")
+			return
+		}
+		log.Printf("Error updating product %d: %v", id, err)
+		respondError(w, http.StatusInternalServerError, "Failed to update product: "+err.Error())
 		return
 	}
 
@@ -274,7 +355,12 @@ func (h *ProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := int32(id64)
 
 	if err := h.queries.SoftDeleteProduct(ctx, id); err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to delete product")
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "Product not found")
+			return
+		}
+		log.Printf("Error deleting product %d: %v", id, err)
+		respondError(w, http.StatusInternalServerError, "Failed to delete product: "+err.Error())
 		return
 	}
 
@@ -313,6 +399,7 @@ func (h *ProductHandler) ListByCategory(w http.ResponseWriter, r *http.Request) 
 		Offset:     offset,
 	})
 	if err != nil {
+		log.Printf("Error listing products by category %d: %v", categoryID, err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch products")
 		return
 	}
@@ -325,6 +412,7 @@ func (h *ProductHandler) ListBelowReorderPoint(w http.ResponseWriter, r *http.Re
 
 	products, err := h.queries.ListProductsBelowReorderPoint(ctx)
 	if err != nil {
+		log.Printf("Error listing products below reorder point: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch products")
 		return
 	}

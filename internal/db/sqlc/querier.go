@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	ActivateSupplier(ctx context.Context, supplierID int32) error
 	ApproveStockAdjustment(ctx context.Context, arg ApproveStockAdjustmentParams) (StockAdjustment, error)
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
@@ -21,8 +22,10 @@ type Querier interface {
 	CreateStockTransferItem(ctx context.Context, arg CreateStockTransferItemParams) (StockTransferItem, error)
 	CreateStocktake(ctx context.Context, arg CreateStocktakeParams) (StockTake, error)
 	CreateStocktakeItem(ctx context.Context, arg CreateStocktakeItemParams) (StocktakeItem, error)
+	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
 	CreateWarehouse(ctx context.Context, arg CreateWarehouseParams) (Warehouse, error)
 	DeactivateLocation(ctx context.Context, locationID int32) error
+	DeactivateSupplier(ctx context.Context, supplierID int32) error
 	DeactivateWarehouse(ctx context.Context, warehouseID int32) error
 	GetActiveStocktakes(ctx context.Context) ([]GetActiveStocktakesRow, error)
 	GetInventory(ctx context.Context, inventoryID int32) (Inventory, error)
@@ -39,9 +42,15 @@ type Querier interface {
 	GetStocktake(ctx context.Context, stocktakeID int32) (GetStocktakeRow, error)
 	GetStocktakeItems(ctx context.Context, stocktakeID int32) ([]GetStocktakeItemsRow, error)
 	GetStocktakeVariances(ctx context.Context, stocktakeID int32) ([]GetStocktakeVariancesRow, error)
+	GetSupplier(ctx context.Context, supplierID int32) (Supplier, error)
+	GetSupplierByCode(ctx context.Context, code string) (Supplier, error)
+	GetSupplierPerformance(ctx context.Context, supplierID int32) (GetSupplierPerformanceRow, error)
+	GetSupplierProducts(ctx context.Context, arg GetSupplierProductsParams) ([]Product, error)
 	GetWarehouse(ctx context.Context, warehouseID int32) (Warehouse, error)
 	GetWarehouseByCode(ctx context.Context, code string) (Warehouse, error)
 	GetWarehouseInventorySummary(ctx context.Context) ([]GetWarehouseInventorySummaryRow, error)
+	ListActiveSuppliers(ctx context.Context) ([]Supplier, error)
+	ListAllSuppliers(ctx context.Context, arg ListAllSuppliersParams) ([]Supplier, error)
 	ListAllWarehouses(ctx context.Context) ([]Warehouse, error)
 	ListExpiringInventory(ctx context.Context) ([]ListExpiringInventoryRow, error)
 	ListInventoryByProduct(ctx context.Context, productID int32) ([]ListInventoryByProductRow, error)
@@ -57,9 +66,11 @@ type Querier interface {
 	ListStockMovementsByWarehouse(ctx context.Context, arg ListStockMovementsByWarehouseParams) ([]ListStockMovementsByWarehouseRow, error)
 	ListStocktakes(ctx context.Context, arg ListStocktakesParams) ([]ListStocktakesRow, error)
 	ListStocktakesByWarehouse(ctx context.Context, warehouseID int32) ([]StockTake, error)
+	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error)
 	ListWarehouses(ctx context.Context) ([]Warehouse, error)
 	ReleaseInventoryReservation(ctx context.Context, arg ReleaseInventoryReservationParams) (Inventory, error)
 	ReserveInventory(ctx context.Context, arg ReserveInventoryParams) (Inventory, error)
+	SearchSuppliers(ctx context.Context, arg SearchSuppliersParams) ([]Supplier, error)
 	SoftDeleteProduct(ctx context.Context, productID int32) error
 	UpdateInventoryQuantity(ctx context.Context, arg UpdateInventoryQuantityParams) (Inventory, error)
 	UpdateInventoryStatus(ctx context.Context, arg UpdateInventoryStatusParams) (Inventory, error)
@@ -72,6 +83,7 @@ type Querier interface {
 	UpdateStockTransferStatus(ctx context.Context, arg UpdateStockTransferStatusParams) (StockTransfer, error)
 	UpdateStocktakeItemCount(ctx context.Context, arg UpdateStocktakeItemCountParams) (StocktakeItem, error)
 	UpdateStocktakeStatus(ctx context.Context, arg UpdateStocktakeStatusParams) (StockTake, error)
+	UpdateSupplier(ctx context.Context, arg UpdateSupplierParams) (Supplier, error)
 	UpdateWarehouse(ctx context.Context, arg UpdateWarehouseParams) (Warehouse, error)
 }
 

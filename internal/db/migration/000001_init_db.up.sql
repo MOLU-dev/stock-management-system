@@ -444,8 +444,8 @@ CREATE TABLE "picking_waves" (
   "priority" int NOT NULL DEFAULT 5,
   "total_items" int,
   "assigned_to" int,
-  "start_time" datetime,
-  "end_time" datetime,
+  "start_time" timestamp,  -- Changed from datetime to timestamp
+  "end_time" timestamp,    -- Changed from datetime to timestamp
   "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
