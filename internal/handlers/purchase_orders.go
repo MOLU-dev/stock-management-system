@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -13,10 +14,10 @@ import (
 )
 
 type PurchaseOrderHandler struct {
-	queries *db.Queries
+	queries db.SingleDb
 }
 
-func NewPurchaseOrderHandler(queries *db.Queries) *PurchaseOrderHandler {
+func NewPurchaseOrderHandler(queries db.SingleDb) *PurchaseOrderHandler {
 	return &PurchaseOrderHandler{queries: queries}
 }
 
@@ -33,7 +34,7 @@ type CreatePurchaseOrderRequest struct {
 
 func (h *PurchaseOrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	var req CreatePurchaseOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -42,13 +43,26 @@ func (h *PurchaseOrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	po, err := h.queries.CreatePurchaseOrder(ctx, db.CreatePurchaseOrderParams{
 		PoNumber:             req.PONumber,
-		SupplierID:           req.SupplierID,
+		SupplierID:           int32(req.SupplierID),
 		OrderDate:            req.OrderDate,
 		ExpectedDeliveryDate: req.ExpectedDeliveryDate,
 		Status:               db.PurchaseOrderStatus(req.Status),
 		TotalAmount:          req.TotalAmount,
-		Notes:                req.Notes,
-		CreatedBy:            req.CreatedBy,
+
+		Notes: sql.NullString{
+			String: func() string {
+				if req.Notes != nil {
+					return *req.Notes
+				}
+				return ""
+			}(),
+			Valid: req.Notes != nil,
+		},
+
+		CreatedBy: sql.NullInt32{
+			Int32: int32(req.CreatedBy),
+			Valid: req.CreatedBy != 0,
+		},
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create purchase order")
@@ -61,14 +75,14 @@ func (h *PurchaseOrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *PurchaseOrderHandler) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	id, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid PO ID")
 		return
 	}
 
-	po, err := h.queries.GetPurchaseOrder(ctx, id)
+	po, err := h.queries.GetPurchaseOrder(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Purchase order not found")
 		return
@@ -123,7 +137,7 @@ type UpdatePurchaseOrderStatusRequest struct {
 func (h *PurchaseOrderHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	id, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid PO ID")
@@ -137,7 +151,7 @@ func (h *PurchaseOrderHandler) UpdateStatus(w http.ResponseWriter, r *http.Reque
 	}
 
 	po, err := h.queries.UpdatePurchaseOrderStatus(ctx, db.UpdatePurchaseOrderStatusParams{
-		PoID:        id,
+		PoID:        int32(id),
 		Status:      db.PurchaseOrderStatus(req.Status),
 		TotalAmount: req.TotalAmount,
 	})
@@ -152,14 +166,14 @@ func (h *PurchaseOrderHandler) UpdateStatus(w http.ResponseWriter, r *http.Reque
 func (h *PurchaseOrderHandler) GetItems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	id, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid PO ID")
 		return
 	}
 
-	items, err := h.queries.GetPurchaseOrderItems(ctx, id)
+	items, err := h.queries.GetPurchaseOrderItems(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to fetch items")
 		return
@@ -179,7 +193,7 @@ type CreatePurchaseOrderItemRequest struct {
 func (h *PurchaseOrderHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	poID, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid PO ID")
@@ -193,8 +207,8 @@ func (h *PurchaseOrderHandler) CreateItem(w http.ResponseWriter, r *http.Request
 	}
 
 	item, err := h.queries.CreatePurchaseOrderItem(ctx, db.CreatePurchaseOrderItemParams{
-		PoID:             poID,
-		ProductID:        req.ProductID,
+		PoID:             int32(poID),
+		ProductID:        int32(req.ProductID),
 		QuantityOrdered:  req.QuantityOrdered,
 		QuantityReceived: req.QuantityReceived,
 		UnitPrice:        req.UnitPrice,
@@ -215,7 +229,7 @@ type ReceiveItemRequest struct {
 func (h *PurchaseOrderHandler) ReceiveItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	itemID, err := strconv.ParseInt(vars["itemId"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid item ID")
@@ -229,8 +243,8 @@ func (h *PurchaseOrderHandler) ReceiveItem(w http.ResponseWriter, r *http.Reques
 	}
 
 	item, err := h.queries.UpdatePurchaseOrderItemReceivedQty(ctx, db.UpdatePurchaseOrderItemReceivedQtyParams{
-		PoItemID: itemID,
-		Column2:  req.Quantity,
+		PoItemID:         int32(itemID),
+		QuantityReceived: req.Quantity,
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to receive item")

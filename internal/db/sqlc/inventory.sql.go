@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getInventory = `-- name: GetInventory :one
@@ -17,8 +16,8 @@ SELECT inventory_id, product_id, warehouse_id, location_id, quantity, reserved_q
 WHERE inventory_id = $1
 `
 
-func (q *Queries) GetInventory(ctx context.Context, inventoryID int32) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, getInventory, inventoryID)
+func (q *Queries) GetInventory(ctx context.Context, inventoryID int32) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, getInventory, inventoryID)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -36,7 +35,7 @@ func (q *Queries) GetInventory(ctx context.Context, inventoryID int32) (*Invento
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getInventoryByLocation = `-- name: GetInventoryByLocation :one
@@ -45,13 +44,13 @@ WHERE product_id = $1 AND warehouse_id = $2 AND location_id = $3
 `
 
 type GetInventoryByLocationParams struct {
-	ProductID   int32       `json:"product_id"`
-	WarehouseID int32       `json:"warehouse_id"`
-	LocationID  pgtype.Int4 `json:"location_id"`
+	ProductID   int32         `json:"product_id"`
+	WarehouseID int32         `json:"warehouse_id"`
+	LocationID  sql.NullInt32 `json:"location_id"`
 }
 
-func (q *Queries) GetInventoryByLocation(ctx context.Context, arg *GetInventoryByLocationParams) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, getInventoryByLocation, arg.ProductID, arg.WarehouseID, arg.LocationID)
+func (q *Queries) GetInventoryByLocation(ctx context.Context, arg GetInventoryByLocationParams) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, getInventoryByLocation, arg.ProductID, arg.WarehouseID, arg.LocationID)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -69,7 +68,7 @@ func (q *Queries) GetInventoryByLocation(ctx context.Context, arg *GetInventoryB
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getInventoryByProductWarehouse = `-- name: GetInventoryByProductWarehouse :one
@@ -82,8 +81,8 @@ type GetInventoryByProductWarehouseParams struct {
 	WarehouseID int32 `json:"warehouse_id"`
 }
 
-func (q *Queries) GetInventoryByProductWarehouse(ctx context.Context, arg *GetInventoryByProductWarehouseParams) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, getInventoryByProductWarehouse, arg.ProductID, arg.WarehouseID)
+func (q *Queries) GetInventoryByProductWarehouse(ctx context.Context, arg GetInventoryByProductWarehouseParams) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, getInventoryByProductWarehouse, arg.ProductID, arg.WarehouseID)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -101,7 +100,7 @@ func (q *Queries) GetInventoryByProductWarehouse(ctx context.Context, arg *GetIn
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const listExpiringInventory = `-- name: ListExpiringInventory :many
@@ -118,33 +117,33 @@ ORDER BY i.expiry_date
 `
 
 type ListExpiringInventoryRow struct {
-	InventoryID       int32               `json:"inventory_id"`
-	ProductID         int32               `json:"product_id"`
-	WarehouseID       int32               `json:"warehouse_id"`
-	LocationID        pgtype.Int4         `json:"location_id"`
-	Quantity          pgtype.Int4         `json:"quantity"`
-	ReservedQuantity  pgtype.Int4         `json:"reserved_quantity"`
-	BatchNumber       pgtype.Text         `json:"batch_number"`
-	ExpiryDate        time.Time           `json:"expiry_date"`
-	ManufacturingDate time.Time           `json:"manufacturing_date"`
-	SerialNumber      pgtype.Text         `json:"serial_number"`
-	Status            NullInventoryStatus `json:"status"`
-	LastCountedDate   time.Time           `json:"last_counted_date"`
-	CreatedAt         time.Time           `json:"created_at"`
-	UpdatedAt         time.Time           `json:"updated_at"`
-	ProductName       string              `json:"product_name"`
-	Sku               string              `json:"sku"`
-	WarehouseName     string              `json:"warehouse_name"`
-	WarehouseCode     string              `json:"warehouse_code"`
+	InventoryID       int32           `json:"inventory_id"`
+	ProductID         int32           `json:"product_id"`
+	WarehouseID       int32           `json:"warehouse_id"`
+	LocationID        sql.NullInt32   `json:"location_id"`
+	Quantity          int32           `json:"quantity"`
+	ReservedQuantity  int32           `json:"reserved_quantity"`
+	BatchNumber       sql.NullString  `json:"batch_number"`
+	ExpiryDate        time.Time       `json:"expiry_date"`
+	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	SerialNumber      sql.NullString  `json:"serial_number"`
+	Status            InventoryStatus `json:"status"`
+	LastCountedDate   time.Time       `json:"last_counted_date"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	ProductName       string          `json:"product_name"`
+	Sku               string          `json:"sku"`
+	WarehouseName     string          `json:"warehouse_name"`
+	WarehouseCode     string          `json:"warehouse_code"`
 }
 
-func (q *Queries) ListExpiringInventory(ctx context.Context) ([]*ListExpiringInventoryRow, error) {
-	rows, err := q.db.Query(ctx, listExpiringInventory)
+func (q *Queries) ListExpiringInventory(ctx context.Context) ([]ListExpiringInventoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listExpiringInventory)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListExpiringInventoryRow
+	var items []ListExpiringInventoryRow
 	for rows.Next() {
 		var i ListExpiringInventoryRow
 		if err := rows.Scan(
@@ -169,7 +168,10 @@ func (q *Queries) ListExpiringInventory(ctx context.Context) ([]*ListExpiringInv
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -186,31 +188,31 @@ ORDER BY i.warehouse_id
 `
 
 type ListInventoryByProductRow struct {
-	InventoryID       int32               `json:"inventory_id"`
-	ProductID         int32               `json:"product_id"`
-	WarehouseID       int32               `json:"warehouse_id"`
-	LocationID        pgtype.Int4         `json:"location_id"`
-	Quantity          pgtype.Int4         `json:"quantity"`
-	ReservedQuantity  pgtype.Int4         `json:"reserved_quantity"`
-	BatchNumber       pgtype.Text         `json:"batch_number"`
-	ExpiryDate        time.Time           `json:"expiry_date"`
-	ManufacturingDate time.Time           `json:"manufacturing_date"`
-	SerialNumber      pgtype.Text         `json:"serial_number"`
-	Status            NullInventoryStatus `json:"status"`
-	LastCountedDate   time.Time           `json:"last_counted_date"`
-	CreatedAt         time.Time           `json:"created_at"`
-	UpdatedAt         time.Time           `json:"updated_at"`
-	WarehouseName     string              `json:"warehouse_name"`
-	WarehouseCode     string              `json:"warehouse_code"`
+	InventoryID       int32           `json:"inventory_id"`
+	ProductID         int32           `json:"product_id"`
+	WarehouseID       int32           `json:"warehouse_id"`
+	LocationID        sql.NullInt32   `json:"location_id"`
+	Quantity          int32           `json:"quantity"`
+	ReservedQuantity  int32           `json:"reserved_quantity"`
+	BatchNumber       sql.NullString  `json:"batch_number"`
+	ExpiryDate        time.Time       `json:"expiry_date"`
+	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	SerialNumber      sql.NullString  `json:"serial_number"`
+	Status            InventoryStatus `json:"status"`
+	LastCountedDate   time.Time       `json:"last_counted_date"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	WarehouseName     string          `json:"warehouse_name"`
+	WarehouseCode     string          `json:"warehouse_code"`
 }
 
-func (q *Queries) ListInventoryByProduct(ctx context.Context, productID int32) ([]*ListInventoryByProductRow, error) {
-	rows, err := q.db.Query(ctx, listInventoryByProduct, productID)
+func (q *Queries) ListInventoryByProduct(ctx context.Context, productID int32) ([]ListInventoryByProductRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInventoryByProduct, productID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListInventoryByProductRow
+	var items []ListInventoryByProductRow
 	for rows.Next() {
 		var i ListInventoryByProductRow
 		if err := rows.Scan(
@@ -233,7 +235,10 @@ func (q *Queries) ListInventoryByProduct(ctx context.Context, productID int32) (
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -257,31 +262,31 @@ type ListInventoryByWarehouseParams struct {
 }
 
 type ListInventoryByWarehouseRow struct {
-	InventoryID       int32               `json:"inventory_id"`
-	ProductID         int32               `json:"product_id"`
-	WarehouseID       int32               `json:"warehouse_id"`
-	LocationID        pgtype.Int4         `json:"location_id"`
-	Quantity          pgtype.Int4         `json:"quantity"`
-	ReservedQuantity  pgtype.Int4         `json:"reserved_quantity"`
-	BatchNumber       pgtype.Text         `json:"batch_number"`
-	ExpiryDate        time.Time           `json:"expiry_date"`
-	ManufacturingDate time.Time           `json:"manufacturing_date"`
-	SerialNumber      pgtype.Text         `json:"serial_number"`
-	Status            NullInventoryStatus `json:"status"`
-	LastCountedDate   time.Time           `json:"last_counted_date"`
-	CreatedAt         time.Time           `json:"created_at"`
-	UpdatedAt         time.Time           `json:"updated_at"`
-	ProductName       string              `json:"product_name"`
-	Sku               string              `json:"sku"`
+	InventoryID       int32           `json:"inventory_id"`
+	ProductID         int32           `json:"product_id"`
+	WarehouseID       int32           `json:"warehouse_id"`
+	LocationID        sql.NullInt32   `json:"location_id"`
+	Quantity          int32           `json:"quantity"`
+	ReservedQuantity  int32           `json:"reserved_quantity"`
+	BatchNumber       sql.NullString  `json:"batch_number"`
+	ExpiryDate        time.Time       `json:"expiry_date"`
+	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	SerialNumber      sql.NullString  `json:"serial_number"`
+	Status            InventoryStatus `json:"status"`
+	LastCountedDate   time.Time       `json:"last_counted_date"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	ProductName       string          `json:"product_name"`
+	Sku               string          `json:"sku"`
 }
 
-func (q *Queries) ListInventoryByWarehouse(ctx context.Context, arg *ListInventoryByWarehouseParams) ([]*ListInventoryByWarehouseRow, error) {
-	rows, err := q.db.Query(ctx, listInventoryByWarehouse, arg.WarehouseID, arg.Limit, arg.Offset)
+func (q *Queries) ListInventoryByWarehouse(ctx context.Context, arg ListInventoryByWarehouseParams) ([]ListInventoryByWarehouseRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInventoryByWarehouse, arg.WarehouseID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListInventoryByWarehouseRow
+	var items []ListInventoryByWarehouseRow
 	for rows.Next() {
 		var i ListInventoryByWarehouseRow
 		if err := rows.Scan(
@@ -304,7 +309,10 @@ func (q *Queries) ListInventoryByWarehouse(ctx context.Context, arg *ListInvento
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -322,12 +330,12 @@ RETURNING inventory_id, product_id, warehouse_id, location_id, quantity, reserve
 `
 
 type ReleaseInventoryReservationParams struct {
-	InventoryID      int32       `json:"inventory_id"`
-	ReservedQuantity pgtype.Int4 `json:"reserved_quantity"`
+	InventoryID      int32 `json:"inventory_id"`
+	ReservedQuantity int32 `json:"reserved_quantity"`
 }
 
-func (q *Queries) ReleaseInventoryReservation(ctx context.Context, arg *ReleaseInventoryReservationParams) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, releaseInventoryReservation, arg.InventoryID, arg.ReservedQuantity)
+func (q *Queries) ReleaseInventoryReservation(ctx context.Context, arg ReleaseInventoryReservationParams) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, releaseInventoryReservation, arg.InventoryID, arg.ReservedQuantity)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -345,7 +353,7 @@ func (q *Queries) ReleaseInventoryReservation(ctx context.Context, arg *ReleaseI
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const reserveInventory = `-- name: ReserveInventory :one
@@ -358,12 +366,12 @@ RETURNING inventory_id, product_id, warehouse_id, location_id, quantity, reserve
 `
 
 type ReserveInventoryParams struct {
-	InventoryID      int32       `json:"inventory_id"`
-	ReservedQuantity pgtype.Int4 `json:"reserved_quantity"`
+	InventoryID      int32 `json:"inventory_id"`
+	ReservedQuantity int32 `json:"reserved_quantity"`
 }
 
-func (q *Queries) ReserveInventory(ctx context.Context, arg *ReserveInventoryParams) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, reserveInventory, arg.InventoryID, arg.ReservedQuantity)
+func (q *Queries) ReserveInventory(ctx context.Context, arg ReserveInventoryParams) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, reserveInventory, arg.InventoryID, arg.ReservedQuantity)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -381,7 +389,7 @@ func (q *Queries) ReserveInventory(ctx context.Context, arg *ReserveInventoryPar
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const updateInventoryQuantity = `-- name: UpdateInventoryQuantity :one
@@ -395,13 +403,13 @@ RETURNING inventory_id, product_id, warehouse_id, location_id, quantity, reserve
 `
 
 type UpdateInventoryQuantityParams struct {
-	InventoryID      int32       `json:"inventory_id"`
-	Quantity         pgtype.Int4 `json:"quantity"`
-	ReservedQuantity pgtype.Int4 `json:"reserved_quantity"`
+	InventoryID      int32 `json:"inventory_id"`
+	Quantity         int32 `json:"quantity"`
+	ReservedQuantity int32 `json:"reserved_quantity"`
 }
 
-func (q *Queries) UpdateInventoryQuantity(ctx context.Context, arg *UpdateInventoryQuantityParams) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, updateInventoryQuantity, arg.InventoryID, arg.Quantity, arg.ReservedQuantity)
+func (q *Queries) UpdateInventoryQuantity(ctx context.Context, arg UpdateInventoryQuantityParams) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, updateInventoryQuantity, arg.InventoryID, arg.Quantity, arg.ReservedQuantity)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -419,7 +427,7 @@ func (q *Queries) UpdateInventoryQuantity(ctx context.Context, arg *UpdateInvent
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const updateInventoryStatus = `-- name: UpdateInventoryStatus :one
@@ -432,12 +440,12 @@ RETURNING inventory_id, product_id, warehouse_id, location_id, quantity, reserve
 `
 
 type UpdateInventoryStatusParams struct {
-	InventoryID int32               `json:"inventory_id"`
-	Status      NullInventoryStatus `json:"status"`
+	InventoryID int32           `json:"inventory_id"`
+	Status      InventoryStatus `json:"status"`
 }
 
-func (q *Queries) UpdateInventoryStatus(ctx context.Context, arg *UpdateInventoryStatusParams) (*Inventory, error) {
-	row := q.db.QueryRow(ctx, updateInventoryStatus, arg.InventoryID, arg.Status)
+func (q *Queries) UpdateInventoryStatus(ctx context.Context, arg UpdateInventoryStatusParams) (Inventory, error) {
+	row := q.db.QueryRowContext(ctx, updateInventoryStatus, arg.InventoryID, arg.Status)
 	var i Inventory
 	err := row.Scan(
 		&i.InventoryID,
@@ -455,5 +463,5 @@ func (q *Queries) UpdateInventoryStatus(ctx context.Context, arg *UpdateInventor
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }

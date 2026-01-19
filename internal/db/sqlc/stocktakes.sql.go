@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createStocktake = `-- name: CreateStocktake :one
@@ -22,17 +21,17 @@ RETURNING stocktake_id, stocktake_number, warehouse_id, start_date, end_date, st
 `
 
 type CreateStocktakeParams struct {
-	StocktakeNumber string              `json:"stocktake_number"`
-	WarehouseID     int32               `json:"warehouse_id"`
-	StartDate       time.Time           `json:"start_date"`
-	EndDate         time.Time           `json:"end_date"`
-	Status          NullStocktakeStatus `json:"status"`
-	Notes           pgtype.Text         `json:"notes"`
-	CreatedBy       pgtype.Int4         `json:"created_by"`
+	StocktakeNumber string          `json:"stocktake_number"`
+	WarehouseID     int32           `json:"warehouse_id"`
+	StartDate       time.Time       `json:"start_date"`
+	EndDate         time.Time       `json:"end_date"`
+	Status          StocktakeStatus `json:"status"`
+	Notes           sql.NullString  `json:"notes"`
+	CreatedBy       sql.NullInt32   `json:"created_by"`
 }
 
-func (q *Queries) CreateStocktake(ctx context.Context, arg *CreateStocktakeParams) (*StockTake, error) {
-	row := q.db.QueryRow(ctx, createStocktake,
+func (q *Queries) CreateStocktake(ctx context.Context, arg CreateStocktakeParams) (StockTake, error) {
+	row := q.db.QueryRowContext(ctx, createStocktake,
 		arg.StocktakeNumber,
 		arg.WarehouseID,
 		arg.StartDate,
@@ -53,7 +52,7 @@ func (q *Queries) CreateStocktake(ctx context.Context, arg *CreateStocktakeParam
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const createStocktakeItem = `-- name: CreateStocktakeItem :one
@@ -67,19 +66,19 @@ RETURNING stocktake_item_id, stocktake_id, product_id, location_id, system_quant
 `
 
 type CreateStocktakeItemParams struct {
-	StocktakeID     int32       `json:"stocktake_id"`
-	ProductID       int32       `json:"product_id"`
-	LocationID      pgtype.Int4 `json:"location_id"`
-	SystemQuantity  int32       `json:"system_quantity"`
-	CountedQuantity pgtype.Int4 `json:"counted_quantity"`
-	Variance        pgtype.Int4 `json:"variance"`
-	CountedBy       pgtype.Int4 `json:"counted_by"`
-	CountedAt       time.Time   `json:"counted_at"`
-	Notes           pgtype.Text `json:"notes"`
+	StocktakeID     int32          `json:"stocktake_id"`
+	ProductID       int32          `json:"product_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	SystemQuantity  int32          `json:"system_quantity"`
+	CountedQuantity sql.NullInt32  `json:"counted_quantity"`
+	Variance        sql.NullInt32  `json:"variance"`
+	CountedBy       sql.NullInt32  `json:"counted_by"`
+	CountedAt       time.Time      `json:"counted_at"`
+	Notes           sql.NullString `json:"notes"`
 }
 
-func (q *Queries) CreateStocktakeItem(ctx context.Context, arg *CreateStocktakeItemParams) (*StocktakeItem, error) {
-	row := q.db.QueryRow(ctx, createStocktakeItem,
+func (q *Queries) CreateStocktakeItem(ctx context.Context, arg CreateStocktakeItemParams) (StocktakeItem, error) {
+	row := q.db.QueryRowContext(ctx, createStocktakeItem,
 		arg.StocktakeID,
 		arg.ProductID,
 		arg.LocationID,
@@ -103,7 +102,7 @@ func (q *Queries) CreateStocktakeItem(ctx context.Context, arg *CreateStocktakeI
 		&i.CountedAt,
 		&i.Notes,
 	)
-	return &i, err
+	return i, err
 }
 
 const getActiveStocktakes = `-- name: GetActiveStocktakes :many
@@ -115,25 +114,25 @@ ORDER BY st.start_date ASC
 `
 
 type GetActiveStocktakesRow struct {
-	StocktakeID     int32               `json:"stocktake_id"`
-	StocktakeNumber string              `json:"stocktake_number"`
-	WarehouseID     int32               `json:"warehouse_id"`
-	StartDate       time.Time           `json:"start_date"`
-	EndDate         time.Time           `json:"end_date"`
-	Status          NullStocktakeStatus `json:"status"`
-	Notes           pgtype.Text         `json:"notes"`
-	CreatedBy       pgtype.Int4         `json:"created_by"`
-	CreatedAt       time.Time           `json:"created_at"`
-	WarehouseName   string              `json:"warehouse_name"`
+	StocktakeID     int32           `json:"stocktake_id"`
+	StocktakeNumber string          `json:"stocktake_number"`
+	WarehouseID     int32           `json:"warehouse_id"`
+	StartDate       time.Time       `json:"start_date"`
+	EndDate         time.Time       `json:"end_date"`
+	Status          StocktakeStatus `json:"status"`
+	Notes           sql.NullString  `json:"notes"`
+	CreatedBy       sql.NullInt32   `json:"created_by"`
+	CreatedAt       time.Time       `json:"created_at"`
+	WarehouseName   string          `json:"warehouse_name"`
 }
 
-func (q *Queries) GetActiveStocktakes(ctx context.Context) ([]*GetActiveStocktakesRow, error) {
-	rows, err := q.db.Query(ctx, getActiveStocktakes)
+func (q *Queries) GetActiveStocktakes(ctx context.Context) ([]GetActiveStocktakesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveStocktakes)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetActiveStocktakesRow
+	var items []GetActiveStocktakesRow
 	for rows.Next() {
 		var i GetActiveStocktakesRow
 		if err := rows.Scan(
@@ -150,7 +149,10 @@ func (q *Queries) GetActiveStocktakes(ctx context.Context) ([]*GetActiveStocktak
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -166,20 +168,20 @@ WHERE st.stocktake_id = $1
 `
 
 type GetStocktakeRow struct {
-	StocktakeID     int32               `json:"stocktake_id"`
-	StocktakeNumber string              `json:"stocktake_number"`
-	WarehouseID     int32               `json:"warehouse_id"`
-	StartDate       time.Time           `json:"start_date"`
-	EndDate         time.Time           `json:"end_date"`
-	Status          NullStocktakeStatus `json:"status"`
-	Notes           pgtype.Text         `json:"notes"`
-	CreatedBy       pgtype.Int4         `json:"created_by"`
-	CreatedAt       time.Time           `json:"created_at"`
-	WarehouseName   string              `json:"warehouse_name"`
+	StocktakeID     int32           `json:"stocktake_id"`
+	StocktakeNumber string          `json:"stocktake_number"`
+	WarehouseID     int32           `json:"warehouse_id"`
+	StartDate       time.Time       `json:"start_date"`
+	EndDate         time.Time       `json:"end_date"`
+	Status          StocktakeStatus `json:"status"`
+	Notes           sql.NullString  `json:"notes"`
+	CreatedBy       sql.NullInt32   `json:"created_by"`
+	CreatedAt       time.Time       `json:"created_at"`
+	WarehouseName   string          `json:"warehouse_name"`
 }
 
-func (q *Queries) GetStocktake(ctx context.Context, stocktakeID int32) (*GetStocktakeRow, error) {
-	row := q.db.QueryRow(ctx, getStocktake, stocktakeID)
+func (q *Queries) GetStocktake(ctx context.Context, stocktakeID int32) (GetStocktakeRow, error) {
+	row := q.db.QueryRowContext(ctx, getStocktake, stocktakeID)
 	var i GetStocktakeRow
 	err := row.Scan(
 		&i.StocktakeID,
@@ -193,7 +195,7 @@ func (q *Queries) GetStocktake(ctx context.Context, stocktakeID int32) (*GetStoc
 		&i.CreatedAt,
 		&i.WarehouseName,
 	)
-	return &i, err
+	return i, err
 }
 
 const getStocktakeItems = `-- name: GetStocktakeItems :many
@@ -206,28 +208,28 @@ ORDER BY p.name
 `
 
 type GetStocktakeItemsRow struct {
-	StocktakeItemID int32       `json:"stocktake_item_id"`
-	StocktakeID     int32       `json:"stocktake_id"`
-	ProductID       int32       `json:"product_id"`
-	LocationID      pgtype.Int4 `json:"location_id"`
-	SystemQuantity  int32       `json:"system_quantity"`
-	CountedQuantity pgtype.Int4 `json:"counted_quantity"`
-	Variance        pgtype.Int4 `json:"variance"`
-	CountedBy       pgtype.Int4 `json:"counted_by"`
-	CountedAt       time.Time   `json:"counted_at"`
-	Notes           pgtype.Text `json:"notes"`
-	ProductName     string      `json:"product_name"`
-	Sku             string      `json:"sku"`
-	LocationCode    pgtype.Text `json:"location_code"`
+	StocktakeItemID int32          `json:"stocktake_item_id"`
+	StocktakeID     int32          `json:"stocktake_id"`
+	ProductID       int32          `json:"product_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	SystemQuantity  int32          `json:"system_quantity"`
+	CountedQuantity sql.NullInt32  `json:"counted_quantity"`
+	Variance        sql.NullInt32  `json:"variance"`
+	CountedBy       sql.NullInt32  `json:"counted_by"`
+	CountedAt       time.Time      `json:"counted_at"`
+	Notes           sql.NullString `json:"notes"`
+	ProductName     string         `json:"product_name"`
+	Sku             string         `json:"sku"`
+	LocationCode    sql.NullString `json:"location_code"`
 }
 
-func (q *Queries) GetStocktakeItems(ctx context.Context, stocktakeID int32) ([]*GetStocktakeItemsRow, error) {
-	rows, err := q.db.Query(ctx, getStocktakeItems, stocktakeID)
+func (q *Queries) GetStocktakeItems(ctx context.Context, stocktakeID int32) ([]GetStocktakeItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStocktakeItems, stocktakeID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetStocktakeItemsRow
+	var items []GetStocktakeItemsRow
 	for rows.Next() {
 		var i GetStocktakeItemsRow
 		if err := rows.Scan(
@@ -247,7 +249,10 @@ func (q *Queries) GetStocktakeItems(ctx context.Context, stocktakeID int32) ([]*
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -266,28 +271,28 @@ ORDER BY ABS(si.variance) DESC
 `
 
 type GetStocktakeVariancesRow struct {
-	StocktakeItemID int32       `json:"stocktake_item_id"`
-	StocktakeID     int32       `json:"stocktake_id"`
-	ProductID       int32       `json:"product_id"`
-	LocationID      pgtype.Int4 `json:"location_id"`
-	SystemQuantity  int32       `json:"system_quantity"`
-	CountedQuantity pgtype.Int4 `json:"counted_quantity"`
-	Variance        pgtype.Int4 `json:"variance"`
-	CountedBy       pgtype.Int4 `json:"counted_by"`
-	CountedAt       time.Time   `json:"counted_at"`
-	Notes           pgtype.Text `json:"notes"`
-	ProductName     string      `json:"product_name"`
-	Sku             string      `json:"sku"`
-	LocationCode    pgtype.Text `json:"location_code"`
+	StocktakeItemID int32          `json:"stocktake_item_id"`
+	StocktakeID     int32          `json:"stocktake_id"`
+	ProductID       int32          `json:"product_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	SystemQuantity  int32          `json:"system_quantity"`
+	CountedQuantity sql.NullInt32  `json:"counted_quantity"`
+	Variance        sql.NullInt32  `json:"variance"`
+	CountedBy       sql.NullInt32  `json:"counted_by"`
+	CountedAt       time.Time      `json:"counted_at"`
+	Notes           sql.NullString `json:"notes"`
+	ProductName     string         `json:"product_name"`
+	Sku             string         `json:"sku"`
+	LocationCode    sql.NullString `json:"location_code"`
 }
 
-func (q *Queries) GetStocktakeVariances(ctx context.Context, stocktakeID int32) ([]*GetStocktakeVariancesRow, error) {
-	rows, err := q.db.Query(ctx, getStocktakeVariances, stocktakeID)
+func (q *Queries) GetStocktakeVariances(ctx context.Context, stocktakeID int32) ([]GetStocktakeVariancesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStocktakeVariances, stocktakeID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetStocktakeVariancesRow
+	var items []GetStocktakeVariancesRow
 	for rows.Next() {
 		var i GetStocktakeVariancesRow
 		if err := rows.Scan(
@@ -307,7 +312,10 @@ func (q *Queries) GetStocktakeVariances(ctx context.Context, stocktakeID int32) 
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -329,25 +337,25 @@ type ListStocktakesParams struct {
 }
 
 type ListStocktakesRow struct {
-	StocktakeID     int32               `json:"stocktake_id"`
-	StocktakeNumber string              `json:"stocktake_number"`
-	WarehouseID     int32               `json:"warehouse_id"`
-	StartDate       time.Time           `json:"start_date"`
-	EndDate         time.Time           `json:"end_date"`
-	Status          NullStocktakeStatus `json:"status"`
-	Notes           pgtype.Text         `json:"notes"`
-	CreatedBy       pgtype.Int4         `json:"created_by"`
-	CreatedAt       time.Time           `json:"created_at"`
-	WarehouseName   string              `json:"warehouse_name"`
+	StocktakeID     int32           `json:"stocktake_id"`
+	StocktakeNumber string          `json:"stocktake_number"`
+	WarehouseID     int32           `json:"warehouse_id"`
+	StartDate       time.Time       `json:"start_date"`
+	EndDate         time.Time       `json:"end_date"`
+	Status          StocktakeStatus `json:"status"`
+	Notes           sql.NullString  `json:"notes"`
+	CreatedBy       sql.NullInt32   `json:"created_by"`
+	CreatedAt       time.Time       `json:"created_at"`
+	WarehouseName   string          `json:"warehouse_name"`
 }
 
-func (q *Queries) ListStocktakes(ctx context.Context, arg *ListStocktakesParams) ([]*ListStocktakesRow, error) {
-	rows, err := q.db.Query(ctx, listStocktakes, arg.Limit, arg.Offset)
+func (q *Queries) ListStocktakes(ctx context.Context, arg ListStocktakesParams) ([]ListStocktakesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStocktakes, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListStocktakesRow
+	var items []ListStocktakesRow
 	for rows.Next() {
 		var i ListStocktakesRow
 		if err := rows.Scan(
@@ -364,7 +372,10 @@ func (q *Queries) ListStocktakes(ctx context.Context, arg *ListStocktakesParams)
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -378,13 +389,13 @@ WHERE warehouse_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListStocktakesByWarehouse(ctx context.Context, warehouseID int32) ([]*StockTake, error) {
-	rows, err := q.db.Query(ctx, listStocktakesByWarehouse, warehouseID)
+func (q *Queries) ListStocktakesByWarehouse(ctx context.Context, warehouseID int32) ([]StockTake, error) {
+	rows, err := q.db.QueryContext(ctx, listStocktakesByWarehouse, warehouseID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*StockTake
+	var items []StockTake
 	for rows.Next() {
 		var i StockTake
 		if err := rows.Scan(
@@ -400,7 +411,10 @@ func (q *Queries) ListStocktakesByWarehouse(ctx context.Context, warehouseID int
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -419,13 +433,13 @@ RETURNING stocktake_item_id, stocktake_id, product_id, location_id, system_quant
 `
 
 type UpdateStocktakeItemCountParams struct {
-	StocktakeItemID int32       `json:"stocktake_item_id"`
-	CountedQuantity pgtype.Int4 `json:"counted_quantity"`
-	CountedBy       pgtype.Int4 `json:"counted_by"`
+	StocktakeItemID int32         `json:"stocktake_item_id"`
+	CountedQuantity sql.NullInt32 `json:"counted_quantity"`
+	CountedBy       sql.NullInt32 `json:"counted_by"`
 }
 
-func (q *Queries) UpdateStocktakeItemCount(ctx context.Context, arg *UpdateStocktakeItemCountParams) (*StocktakeItem, error) {
-	row := q.db.QueryRow(ctx, updateStocktakeItemCount, arg.StocktakeItemID, arg.CountedQuantity, arg.CountedBy)
+func (q *Queries) UpdateStocktakeItemCount(ctx context.Context, arg UpdateStocktakeItemCountParams) (StocktakeItem, error) {
+	row := q.db.QueryRowContext(ctx, updateStocktakeItemCount, arg.StocktakeItemID, arg.CountedQuantity, arg.CountedBy)
 	var i StocktakeItem
 	err := row.Scan(
 		&i.StocktakeItemID,
@@ -439,7 +453,7 @@ func (q *Queries) UpdateStocktakeItemCount(ctx context.Context, arg *UpdateStock
 		&i.CountedAt,
 		&i.Notes,
 	)
-	return &i, err
+	return i, err
 }
 
 const updateStocktakeStatus = `-- name: UpdateStocktakeStatus :one
@@ -450,12 +464,12 @@ RETURNING stocktake_id, stocktake_number, warehouse_id, start_date, end_date, st
 `
 
 type UpdateStocktakeStatusParams struct {
-	StocktakeID int32               `json:"stocktake_id"`
-	Status      NullStocktakeStatus `json:"status"`
+	StocktakeID int32           `json:"stocktake_id"`
+	Status      StocktakeStatus `json:"status"`
 }
 
-func (q *Queries) UpdateStocktakeStatus(ctx context.Context, arg *UpdateStocktakeStatusParams) (*StockTake, error) {
-	row := q.db.QueryRow(ctx, updateStocktakeStatus, arg.StocktakeID, arg.Status)
+func (q *Queries) UpdateStocktakeStatus(ctx context.Context, arg UpdateStocktakeStatusParams) (StockTake, error) {
+	row := q.db.QueryRowContext(ctx, updateStocktakeStatus, arg.StocktakeID, arg.Status)
 	var i StockTake
 	err := row.Scan(
 		&i.StocktakeID,
@@ -468,5 +482,5 @@ func (q *Queries) UpdateStocktakeStatus(ctx context.Context, arg *UpdateStocktak
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }

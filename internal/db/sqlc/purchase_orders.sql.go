@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -23,18 +23,18 @@ INSERT INTO purchase_orders (
 `
 
 type CreatePurchaseOrderParams struct {
-	PoNumber             string                  `json:"po_number"`
-	SupplierID           int32                   `json:"supplier_id"`
-	OrderDate            time.Time               `json:"order_date"`
-	ExpectedDeliveryDate time.Time               `json:"expected_delivery_date"`
-	Status               NullPurchaseOrderStatus `json:"status"`
-	TotalAmount          decimal.Decimal         `json:"total_amount"`
-	Notes                pgtype.Text             `json:"notes"`
-	CreatedBy            pgtype.Int4             `json:"created_by"`
+	PoNumber             string              `json:"po_number"`
+	SupplierID           int32               `json:"supplier_id"`
+	OrderDate            time.Time           `json:"order_date"`
+	ExpectedDeliveryDate time.Time           `json:"expected_delivery_date"`
+	Status               PurchaseOrderStatus `json:"status"`
+	TotalAmount          decimal.Decimal     `json:"total_amount"`
+	Notes                sql.NullString      `json:"notes"`
+	CreatedBy            sql.NullInt32       `json:"created_by"`
 }
 
-func (q *Queries) CreatePurchaseOrder(ctx context.Context, arg *CreatePurchaseOrderParams) (*PurchaseOrder, error) {
-	row := q.db.QueryRow(ctx, createPurchaseOrder,
+func (q *Queries) CreatePurchaseOrder(ctx context.Context, arg CreatePurchaseOrderParams) (PurchaseOrder, error) {
+	row := q.db.QueryRowContext(ctx, createPurchaseOrder,
 		arg.PoNumber,
 		arg.SupplierID,
 		arg.OrderDate,
@@ -57,7 +57,7 @@ func (q *Queries) CreatePurchaseOrder(ctx context.Context, arg *CreatePurchaseOr
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const createPurchaseOrderItem = `-- name: CreatePurchaseOrderItem :one
@@ -73,13 +73,13 @@ type CreatePurchaseOrderItemParams struct {
 	PoID             int32           `json:"po_id"`
 	ProductID        int32           `json:"product_id"`
 	QuantityOrdered  int32           `json:"quantity_ordered"`
-	QuantityReceived pgtype.Int4     `json:"quantity_received"`
+	QuantityReceived int32           `json:"quantity_received"`
 	UnitPrice        decimal.Decimal `json:"unit_price"`
 	TotalPrice       decimal.Decimal `json:"total_price"`
 }
 
-func (q *Queries) CreatePurchaseOrderItem(ctx context.Context, arg *CreatePurchaseOrderItemParams) (*PurchaseOrderItem, error) {
-	row := q.db.QueryRow(ctx, createPurchaseOrderItem,
+func (q *Queries) CreatePurchaseOrderItem(ctx context.Context, arg CreatePurchaseOrderItemParams) (PurchaseOrderItem, error) {
+	row := q.db.QueryRowContext(ctx, createPurchaseOrderItem,
 		arg.PoID,
 		arg.ProductID,
 		arg.QuantityOrdered,
@@ -97,7 +97,7 @@ func (q *Queries) CreatePurchaseOrderItem(ctx context.Context, arg *CreatePurcha
 		&i.UnitPrice,
 		&i.TotalPrice,
 	)
-	return &i, err
+	return i, err
 }
 
 const getPurchaseOrder = `-- name: GetPurchaseOrder :one
@@ -110,23 +110,23 @@ WHERE po.po_id = $1
 `
 
 type GetPurchaseOrderRow struct {
-	PoID                 int32                   `json:"po_id"`
-	PoNumber             string                  `json:"po_number"`
-	SupplierID           int32                   `json:"supplier_id"`
-	OrderDate            time.Time               `json:"order_date"`
-	ExpectedDeliveryDate time.Time               `json:"expected_delivery_date"`
-	Status               NullPurchaseOrderStatus `json:"status"`
-	TotalAmount          decimal.Decimal         `json:"total_amount"`
-	Notes                pgtype.Text             `json:"notes"`
-	CreatedBy            pgtype.Int4             `json:"created_by"`
-	CreatedAt            time.Time               `json:"created_at"`
-	SupplierName         pgtype.Text             `json:"supplier_name"`
-	SupplierCode         pgtype.Text             `json:"supplier_code"`
-	CreatorName          pgtype.Text             `json:"creator_name"`
+	PoID                 int32               `json:"po_id"`
+	PoNumber             string              `json:"po_number"`
+	SupplierID           int32               `json:"supplier_id"`
+	OrderDate            time.Time           `json:"order_date"`
+	ExpectedDeliveryDate time.Time           `json:"expected_delivery_date"`
+	Status               PurchaseOrderStatus `json:"status"`
+	TotalAmount          decimal.Decimal     `json:"total_amount"`
+	Notes                sql.NullString      `json:"notes"`
+	CreatedBy            sql.NullInt32       `json:"created_by"`
+	CreatedAt            time.Time           `json:"created_at"`
+	SupplierName         sql.NullString      `json:"supplier_name"`
+	SupplierCode         sql.NullString      `json:"supplier_code"`
+	CreatorName          sql.NullString      `json:"creator_name"`
 }
 
-func (q *Queries) GetPurchaseOrder(ctx context.Context, poID int32) (*GetPurchaseOrderRow, error) {
-	row := q.db.QueryRow(ctx, getPurchaseOrder, poID)
+func (q *Queries) GetPurchaseOrder(ctx context.Context, poID int32) (GetPurchaseOrderRow, error) {
+	row := q.db.QueryRowContext(ctx, getPurchaseOrder, poID)
 	var i GetPurchaseOrderRow
 	err := row.Scan(
 		&i.PoID,
@@ -143,7 +143,7 @@ func (q *Queries) GetPurchaseOrder(ctx context.Context, poID int32) (*GetPurchas
 		&i.SupplierCode,
 		&i.CreatorName,
 	)
-	return &i, err
+	return i, err
 }
 
 const getPurchaseOrderItems = `-- name: GetPurchaseOrderItems :many
@@ -159,20 +159,20 @@ type GetPurchaseOrderItemsRow struct {
 	PoID             int32           `json:"po_id"`
 	ProductID        int32           `json:"product_id"`
 	QuantityOrdered  int32           `json:"quantity_ordered"`
-	QuantityReceived pgtype.Int4     `json:"quantity_received"`
+	QuantityReceived int32           `json:"quantity_received"`
 	UnitPrice        decimal.Decimal `json:"unit_price"`
 	TotalPrice       decimal.Decimal `json:"total_price"`
 	ProductName      string          `json:"product_name"`
 	Sku              string          `json:"sku"`
 }
 
-func (q *Queries) GetPurchaseOrderItems(ctx context.Context, poID int32) ([]*GetPurchaseOrderItemsRow, error) {
-	rows, err := q.db.Query(ctx, getPurchaseOrderItems, poID)
+func (q *Queries) GetPurchaseOrderItems(ctx context.Context, poID int32) ([]GetPurchaseOrderItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPurchaseOrderItems, poID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetPurchaseOrderItemsRow
+	var items []GetPurchaseOrderItemsRow
 	for rows.Next() {
 		var i GetPurchaseOrderItemsRow
 		if err := rows.Scan(
@@ -188,7 +188,10 @@ func (q *Queries) GetPurchaseOrderItems(ctx context.Context, poID int32) ([]*Get
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -210,26 +213,26 @@ type ListPurchaseOrdersParams struct {
 }
 
 type ListPurchaseOrdersRow struct {
-	PoID                 int32                   `json:"po_id"`
-	PoNumber             string                  `json:"po_number"`
-	SupplierID           int32                   `json:"supplier_id"`
-	OrderDate            time.Time               `json:"order_date"`
-	ExpectedDeliveryDate time.Time               `json:"expected_delivery_date"`
-	Status               NullPurchaseOrderStatus `json:"status"`
-	TotalAmount          decimal.Decimal         `json:"total_amount"`
-	Notes                pgtype.Text             `json:"notes"`
-	CreatedBy            pgtype.Int4             `json:"created_by"`
-	CreatedAt            time.Time               `json:"created_at"`
-	SupplierName         pgtype.Text             `json:"supplier_name"`
+	PoID                 int32               `json:"po_id"`
+	PoNumber             string              `json:"po_number"`
+	SupplierID           int32               `json:"supplier_id"`
+	OrderDate            time.Time           `json:"order_date"`
+	ExpectedDeliveryDate time.Time           `json:"expected_delivery_date"`
+	Status               PurchaseOrderStatus `json:"status"`
+	TotalAmount          decimal.Decimal     `json:"total_amount"`
+	Notes                sql.NullString      `json:"notes"`
+	CreatedBy            sql.NullInt32       `json:"created_by"`
+	CreatedAt            time.Time           `json:"created_at"`
+	SupplierName         sql.NullString      `json:"supplier_name"`
 }
 
-func (q *Queries) ListPurchaseOrders(ctx context.Context, arg *ListPurchaseOrdersParams) ([]*ListPurchaseOrdersRow, error) {
-	rows, err := q.db.Query(ctx, listPurchaseOrders, arg.Limit, arg.Offset)
+func (q *Queries) ListPurchaseOrders(ctx context.Context, arg ListPurchaseOrdersParams) ([]ListPurchaseOrdersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPurchaseOrders, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListPurchaseOrdersRow
+	var items []ListPurchaseOrdersRow
 	for rows.Next() {
 		var i ListPurchaseOrdersRow
 		if err := rows.Scan(
@@ -247,7 +250,10 @@ func (q *Queries) ListPurchaseOrders(ctx context.Context, arg *ListPurchaseOrder
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -265,32 +271,32 @@ LIMIT $2 OFFSET $3
 `
 
 type ListPurchaseOrdersByStatusParams struct {
-	Status NullPurchaseOrderStatus `json:"status"`
-	Limit  int32                   `json:"limit"`
-	Offset int32                   `json:"offset"`
+	Status PurchaseOrderStatus `json:"status"`
+	Limit  int32               `json:"limit"`
+	Offset int32               `json:"offset"`
 }
 
 type ListPurchaseOrdersByStatusRow struct {
-	PoID                 int32                   `json:"po_id"`
-	PoNumber             string                  `json:"po_number"`
-	SupplierID           int32                   `json:"supplier_id"`
-	OrderDate            time.Time               `json:"order_date"`
-	ExpectedDeliveryDate time.Time               `json:"expected_delivery_date"`
-	Status               NullPurchaseOrderStatus `json:"status"`
-	TotalAmount          decimal.Decimal         `json:"total_amount"`
-	Notes                pgtype.Text             `json:"notes"`
-	CreatedBy            pgtype.Int4             `json:"created_by"`
-	CreatedAt            time.Time               `json:"created_at"`
-	SupplierName         pgtype.Text             `json:"supplier_name"`
+	PoID                 int32               `json:"po_id"`
+	PoNumber             string              `json:"po_number"`
+	SupplierID           int32               `json:"supplier_id"`
+	OrderDate            time.Time           `json:"order_date"`
+	ExpectedDeliveryDate time.Time           `json:"expected_delivery_date"`
+	Status               PurchaseOrderStatus `json:"status"`
+	TotalAmount          decimal.Decimal     `json:"total_amount"`
+	Notes                sql.NullString      `json:"notes"`
+	CreatedBy            sql.NullInt32       `json:"created_by"`
+	CreatedAt            time.Time           `json:"created_at"`
+	SupplierName         sql.NullString      `json:"supplier_name"`
 }
 
-func (q *Queries) ListPurchaseOrdersByStatus(ctx context.Context, arg *ListPurchaseOrdersByStatusParams) ([]*ListPurchaseOrdersByStatusRow, error) {
-	rows, err := q.db.Query(ctx, listPurchaseOrdersByStatus, arg.Status, arg.Limit, arg.Offset)
+func (q *Queries) ListPurchaseOrdersByStatus(ctx context.Context, arg ListPurchaseOrdersByStatusParams) ([]ListPurchaseOrdersByStatusRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPurchaseOrdersByStatus, arg.Status, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListPurchaseOrdersByStatusRow
+	var items []ListPurchaseOrdersByStatusRow
 	for rows.Next() {
 		var i ListPurchaseOrdersByStatusRow
 		if err := rows.Scan(
@@ -308,7 +314,10 @@ func (q *Queries) ListPurchaseOrdersByStatus(ctx context.Context, arg *ListPurch
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -326,12 +335,12 @@ RETURNING po_item_id, po_id, product_id, quantity_ordered, quantity_received, un
 `
 
 type UpdatePurchaseOrderItemReceivedQtyParams struct {
-	PoItemID         int32       `json:"po_item_id"`
-	QuantityReceived pgtype.Int4 `json:"quantity_received"`
+	PoItemID         int32 `json:"po_item_id"`
+	QuantityReceived int32 `json:"quantity_received"`
 }
 
-func (q *Queries) UpdatePurchaseOrderItemReceivedQty(ctx context.Context, arg *UpdatePurchaseOrderItemReceivedQtyParams) (*PurchaseOrderItem, error) {
-	row := q.db.QueryRow(ctx, updatePurchaseOrderItemReceivedQty, arg.PoItemID, arg.QuantityReceived)
+func (q *Queries) UpdatePurchaseOrderItemReceivedQty(ctx context.Context, arg UpdatePurchaseOrderItemReceivedQtyParams) (PurchaseOrderItem, error) {
+	row := q.db.QueryRowContext(ctx, updatePurchaseOrderItemReceivedQty, arg.PoItemID, arg.QuantityReceived)
 	var i PurchaseOrderItem
 	err := row.Scan(
 		&i.PoItemID,
@@ -342,7 +351,7 @@ func (q *Queries) UpdatePurchaseOrderItemReceivedQty(ctx context.Context, arg *U
 		&i.UnitPrice,
 		&i.TotalPrice,
 	)
-	return &i, err
+	return i, err
 }
 
 const updatePurchaseOrderStatus = `-- name: UpdatePurchaseOrderStatus :one
@@ -356,13 +365,13 @@ RETURNING po_id, po_number, supplier_id, order_date, expected_delivery_date, sta
 `
 
 type UpdatePurchaseOrderStatusParams struct {
-	PoID        int32                   `json:"po_id"`
-	Status      NullPurchaseOrderStatus `json:"status"`
-	TotalAmount decimal.Decimal         `json:"total_amount"`
+	PoID        int32               `json:"po_id"`
+	Status      PurchaseOrderStatus `json:"status"`
+	TotalAmount decimal.Decimal     `json:"total_amount"`
 }
 
-func (q *Queries) UpdatePurchaseOrderStatus(ctx context.Context, arg *UpdatePurchaseOrderStatusParams) (*PurchaseOrder, error) {
-	row := q.db.QueryRow(ctx, updatePurchaseOrderStatus, arg.PoID, arg.Status, arg.TotalAmount)
+func (q *Queries) UpdatePurchaseOrderStatus(ctx context.Context, arg UpdatePurchaseOrderStatusParams) (PurchaseOrder, error) {
+	row := q.db.QueryRowContext(ctx, updatePurchaseOrderStatus, arg.PoID, arg.Status, arg.TotalAmount)
 	var i PurchaseOrder
 	err := row.Scan(
 		&i.PoID,
@@ -376,5 +385,5 @@ func (q *Queries) UpdatePurchaseOrderStatus(ctx context.Context, arg *UpdatePurc
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }

@@ -1,20 +1,33 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
+	db "github.com/molu/stock-management-system/internal/db/sqlc"
 	"github.com/shopspring/decimal"
-	db "github.com/molu/stock-management-system/internal/db/sqlc")
+)
 
-type StockAdjustmentHandler struct {
-	queries *db.Queries
+func NullString(s *string) sql.NullString {
+	if s == nil {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{
+		String: *s,
+		Valid:  true,
+	}
 }
 
-func NewStockAdjustmentHandler(queries *db.Queries) *StockAdjustmentHandler {
+
+type StockAdjustmentHandler struct {
+	queries db.SingleDb
+}
+
+func NewStockAdjustmentHandler(queries db.SingleDb) *StockAdjustmentHandler {
 	return &StockAdjustmentHandler{queries: queries}
 }
 
@@ -31,7 +44,7 @@ type CreateStockAdjustmentRequest struct {
 
 func (h *StockAdjustmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	var req CreateStockAdjustmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -40,13 +53,13 @@ func (h *StockAdjustmentHandler) Create(w http.ResponseWriter, r *http.Request) 
 
 	adjustment, err := h.queries.CreateStockAdjustment(ctx, db.CreateStockAdjustmentParams{
 		AdjustmentNumber: req.AdjustmentNumber,
-		WarehouseID:      req.WarehouseID,
+		WarehouseID:      int32(req.WarehouseID),
 		AdjustmentDate:   req.AdjustmentDate,
-		Reason:           req.Reason,
+		Reason:           db.AdjustmentReason(req.Reason),
 		Status:           db.AdjustmentStatus(req.Status),
 		TotalValue:       req.TotalValue,
-		Notes:            req.Notes,
-		CreatedBy:        req.CreatedBy,
+		Notes:            NullString(req.Notes),
+		CreatedBy:        NullInt32(req.CreatedBy),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create adjustment")
@@ -63,7 +76,7 @@ type ApproveAdjustmentRequest struct {
 func (h *StockAdjustmentHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	id, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid adjustment ID")
@@ -77,8 +90,8 @@ func (h *StockAdjustmentHandler) Approve(w http.ResponseWriter, r *http.Request)
 	}
 
 	adjustment, err := h.queries.ApproveStockAdjustment(ctx, db.ApproveStockAdjustmentParams{
-		AdjustmentID: id,
-		ApprovedBy:   &req.ApprovedBy,
+		AdjustmentID: int32(id),
+		ApprovedBy:   NullInt32(req.ApprovedBy),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to approve adjustment")
@@ -99,7 +112,7 @@ type CreateAdjustmentItemRequest struct {
 func (h *StockAdjustmentHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
-	
+
 	adjustmentID, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid adjustment ID")
@@ -113,12 +126,12 @@ func (h *StockAdjustmentHandler) CreateItem(w http.ResponseWriter, r *http.Reque
 	}
 
 	item, err := h.queries.CreateStockAdjustmentItem(ctx, db.CreateStockAdjustmentItemParams{
-		AdjustmentID:     adjustmentID,
-		ProductID:        req.ProductID,
+		AdjustmentID:     int32(adjustmentID),
+		ProductID:        int32(req.ProductID),
 		QuantityBefore:   req.QuantityBefore,
 		QuantityAdjusted: req.QuantityAdjusted,
 		CostPrice:        req.CostPrice,
-		Reason:           req.Reason,
+		Reason:           sql.NullString{String: req.Reason, Valid: true},
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create item")

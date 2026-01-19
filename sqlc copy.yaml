@@ -1,5 +1,4 @@
 version: "2"
-
 sql:
   - schema: "internal/db/migration"
     queries: "internal/db/queries/"
@@ -8,22 +7,13 @@ sql:
       go:
         package: "db"
         out: "internal/db/sqlc"
-
-        # Use standard database/sql instead of pgx strict types
-        sql_package: "database/sql"
-
-        # Keep code simple
-        emit_params_struct_pointers: false
-        emit_result_struct_pointers: false
-
+        sql_package: "pgx/v5"
         emit_json_tags: true
         emit_interface: true
         emit_enum_valid_method: true
         emit_all_enum_values: true
         json_tags_case_style: "snake"
-
         overrides:
-          # ---- Time fields ----
           - column: "*.created_at"
             go_type: "time.Time"
           - column: "*.updated_at"
@@ -76,8 +66,6 @@ sql:
             go_type: "time.Time"
           - column: "*.last_updated"
             go_type: "time.Time"
-
-          # ---- Decimal / money fields ----
           - column: "*.unit_price"
             go_type: "github.com/shopspring/decimal.Decimal"
           - column: "*.cost_price"
@@ -102,8 +90,6 @@ sql:
             go_type: "github.com/shopspring/decimal.Decimal"
           - column: "*.weight"
             go_type: "github.com/shopspring/decimal.Decimal"
-
-          # ---- JSON fields ----
           - db_type: "json"
             go_type: "json.RawMessage"
             nullable: true

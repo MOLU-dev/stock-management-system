@@ -7,8 +7,7 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
+	"database/sql"
 )
 
 const createLocation = `-- name: CreateLocation :one
@@ -21,16 +20,16 @@ RETURNING location_id, warehouse_id, location_code, aisle, shelf, bin, max_capac
 `
 
 type CreateLocationParams struct {
-	WarehouseID  int32       `json:"warehouse_id"`
-	LocationCode string      `json:"location_code"`
-	Aisle        pgtype.Text `json:"aisle"`
-	Shelf        pgtype.Text `json:"shelf"`
-	Bin          pgtype.Text `json:"bin"`
-	MaxCapacity  pgtype.Int4 `json:"max_capacity"`
+	WarehouseID  int32          `json:"warehouse_id"`
+	LocationCode string         `json:"location_code"`
+	Aisle        sql.NullString `json:"aisle"`
+	Shelf        sql.NullString `json:"shelf"`
+	Bin          sql.NullString `json:"bin"`
+	MaxCapacity  sql.NullInt32  `json:"max_capacity"`
 }
 
-func (q *Queries) CreateLocation(ctx context.Context, arg *CreateLocationParams) (*Location, error) {
-	row := q.db.QueryRow(ctx, createLocation,
+func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error) {
+	row := q.db.QueryRowContext(ctx, createLocation,
 		arg.WarehouseID,
 		arg.LocationCode,
 		arg.Aisle,
@@ -49,7 +48,7 @@ func (q *Queries) CreateLocation(ctx context.Context, arg *CreateLocationParams)
 		&i.MaxCapacity,
 		&i.IsActive,
 	)
-	return &i, err
+	return i, err
 }
 
 const createWarehouse = `-- name: CreateWarehouse :one
@@ -62,16 +61,16 @@ RETURNING warehouse_id, code, name, address, contact_person, contact_phone, cont
 `
 
 type CreateWarehouseParams struct {
-	Code          string      `json:"code"`
-	Name          string      `json:"name"`
-	Address       pgtype.Text `json:"address"`
-	ContactPerson pgtype.Text `json:"contact_person"`
-	ContactPhone  pgtype.Text `json:"contact_phone"`
-	ContactEmail  pgtype.Text `json:"contact_email"`
+	Code          string         `json:"code"`
+	Name          string         `json:"name"`
+	Address       sql.NullString `json:"address"`
+	ContactPerson sql.NullString `json:"contact_person"`
+	ContactPhone  sql.NullString `json:"contact_phone"`
+	ContactEmail  sql.NullString `json:"contact_email"`
 }
 
-func (q *Queries) CreateWarehouse(ctx context.Context, arg *CreateWarehouseParams) (*Warehouse, error) {
-	row := q.db.QueryRow(ctx, createWarehouse,
+func (q *Queries) CreateWarehouse(ctx context.Context, arg CreateWarehouseParams) (Warehouse, error) {
+	row := q.db.QueryRowContext(ctx, createWarehouse,
 		arg.Code,
 		arg.Name,
 		arg.Address,
@@ -91,7 +90,7 @@ func (q *Queries) CreateWarehouse(ctx context.Context, arg *CreateWarehouseParam
 		&i.IsActive,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const deactivateLocation = `-- name: DeactivateLocation :exec
@@ -101,7 +100,7 @@ WHERE location_id = $1
 `
 
 func (q *Queries) DeactivateLocation(ctx context.Context, locationID int32) error {
-	_, err := q.db.Exec(ctx, deactivateLocation, locationID)
+	_, err := q.db.ExecContext(ctx, deactivateLocation, locationID)
 	return err
 }
 
@@ -112,7 +111,7 @@ WHERE warehouse_id = $1
 `
 
 func (q *Queries) DeactivateWarehouse(ctx context.Context, warehouseID int32) error {
-	_, err := q.db.Exec(ctx, deactivateWarehouse, warehouseID)
+	_, err := q.db.ExecContext(ctx, deactivateWarehouse, warehouseID)
 	return err
 }
 
@@ -120,8 +119,8 @@ const getLocation = `-- name: GetLocation :one
 SELECT location_id, warehouse_id, location_code, aisle, shelf, bin, max_capacity, is_active FROM locations WHERE location_id = $1
 `
 
-func (q *Queries) GetLocation(ctx context.Context, locationID int32) (*Location, error) {
-	row := q.db.QueryRow(ctx, getLocation, locationID)
+func (q *Queries) GetLocation(ctx context.Context, locationID int32) (Location, error) {
+	row := q.db.QueryRowContext(ctx, getLocation, locationID)
 	var i Location
 	err := row.Scan(
 		&i.LocationID,
@@ -133,7 +132,7 @@ func (q *Queries) GetLocation(ctx context.Context, locationID int32) (*Location,
 		&i.MaxCapacity,
 		&i.IsActive,
 	)
-	return &i, err
+	return i, err
 }
 
 const getLocationByCode = `-- name: GetLocationByCode :one
@@ -146,8 +145,8 @@ type GetLocationByCodeParams struct {
 	LocationCode string `json:"location_code"`
 }
 
-func (q *Queries) GetLocationByCode(ctx context.Context, arg *GetLocationByCodeParams) (*Location, error) {
-	row := q.db.QueryRow(ctx, getLocationByCode, arg.WarehouseID, arg.LocationCode)
+func (q *Queries) GetLocationByCode(ctx context.Context, arg GetLocationByCodeParams) (Location, error) {
+	row := q.db.QueryRowContext(ctx, getLocationByCode, arg.WarehouseID, arg.LocationCode)
 	var i Location
 	err := row.Scan(
 		&i.LocationID,
@@ -159,15 +158,15 @@ func (q *Queries) GetLocationByCode(ctx context.Context, arg *GetLocationByCodeP
 		&i.MaxCapacity,
 		&i.IsActive,
 	)
-	return &i, err
+	return i, err
 }
 
 const getWarehouse = `-- name: GetWarehouse :one
 SELECT warehouse_id, code, name, address, contact_person, contact_phone, contact_email, is_active, created_at FROM warehouses WHERE warehouse_id = $1
 `
 
-func (q *Queries) GetWarehouse(ctx context.Context, warehouseID int32) (*Warehouse, error) {
-	row := q.db.QueryRow(ctx, getWarehouse, warehouseID)
+func (q *Queries) GetWarehouse(ctx context.Context, warehouseID int32) (Warehouse, error) {
+	row := q.db.QueryRowContext(ctx, getWarehouse, warehouseID)
 	var i Warehouse
 	err := row.Scan(
 		&i.WarehouseID,
@@ -180,15 +179,15 @@ func (q *Queries) GetWarehouse(ctx context.Context, warehouseID int32) (*Warehou
 		&i.IsActive,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getWarehouseByCode = `-- name: GetWarehouseByCode :one
 SELECT warehouse_id, code, name, address, contact_person, contact_phone, contact_email, is_active, created_at FROM warehouses WHERE code = $1
 `
 
-func (q *Queries) GetWarehouseByCode(ctx context.Context, code string) (*Warehouse, error) {
-	row := q.db.QueryRow(ctx, getWarehouseByCode, code)
+func (q *Queries) GetWarehouseByCode(ctx context.Context, code string) (Warehouse, error) {
+	row := q.db.QueryRowContext(ctx, getWarehouseByCode, code)
 	var i Warehouse
 	err := row.Scan(
 		&i.WarehouseID,
@@ -201,7 +200,7 @@ func (q *Queries) GetWarehouseByCode(ctx context.Context, code string) (*Warehou
 		&i.IsActive,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getWarehouseInventorySummary = `-- name: GetWarehouseInventorySummary :many
@@ -226,13 +225,13 @@ type GetWarehouseInventorySummaryRow struct {
 	ReservedItems  interface{} `json:"reserved_items"`
 }
 
-func (q *Queries) GetWarehouseInventorySummary(ctx context.Context) ([]*GetWarehouseInventorySummaryRow, error) {
-	rows, err := q.db.Query(ctx, getWarehouseInventorySummary)
+func (q *Queries) GetWarehouseInventorySummary(ctx context.Context) ([]GetWarehouseInventorySummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWarehouseInventorySummary)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetWarehouseInventorySummaryRow
+	var items []GetWarehouseInventorySummaryRow
 	for rows.Next() {
 		var i GetWarehouseInventorySummaryRow
 		if err := rows.Scan(
@@ -244,7 +243,10 @@ func (q *Queries) GetWarehouseInventorySummary(ctx context.Context) ([]*GetWareh
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -257,13 +259,13 @@ SELECT warehouse_id, code, name, address, contact_person, contact_phone, contact
 ORDER BY name
 `
 
-func (q *Queries) ListAllWarehouses(ctx context.Context) ([]*Warehouse, error) {
-	rows, err := q.db.Query(ctx, listAllWarehouses)
+func (q *Queries) ListAllWarehouses(ctx context.Context) ([]Warehouse, error) {
+	rows, err := q.db.QueryContext(ctx, listAllWarehouses)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Warehouse
+	var items []Warehouse
 	for rows.Next() {
 		var i Warehouse
 		if err := rows.Scan(
@@ -279,7 +281,10 @@ func (q *Queries) ListAllWarehouses(ctx context.Context) ([]*Warehouse, error) {
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -293,13 +298,13 @@ WHERE warehouse_id = $1 AND is_active = true
 ORDER BY location_code
 `
 
-func (q *Queries) ListLocationsByWarehouse(ctx context.Context, warehouseID int32) ([]*Location, error) {
-	rows, err := q.db.Query(ctx, listLocationsByWarehouse, warehouseID)
+func (q *Queries) ListLocationsByWarehouse(ctx context.Context, warehouseID int32) ([]Location, error) {
+	rows, err := q.db.QueryContext(ctx, listLocationsByWarehouse, warehouseID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Location
+	var items []Location
 	for rows.Next() {
 		var i Location
 		if err := rows.Scan(
@@ -314,7 +319,10 @@ func (q *Queries) ListLocationsByWarehouse(ctx context.Context, warehouseID int3
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -328,13 +336,13 @@ WHERE is_active = true
 ORDER BY name
 `
 
-func (q *Queries) ListWarehouses(ctx context.Context) ([]*Warehouse, error) {
-	rows, err := q.db.Query(ctx, listWarehouses)
+func (q *Queries) ListWarehouses(ctx context.Context) ([]Warehouse, error) {
+	rows, err := q.db.QueryContext(ctx, listWarehouses)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Warehouse
+	var items []Warehouse
 	for rows.Next() {
 		var i Warehouse
 		if err := rows.Scan(
@@ -350,7 +358,10 @@ func (q *Queries) ListWarehouses(ctx context.Context) ([]*Warehouse, error) {
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -369,15 +380,15 @@ RETURNING location_id, warehouse_id, location_code, aisle, shelf, bin, max_capac
 `
 
 type UpdateLocationParams struct {
-	LocationID  int32       `json:"location_id"`
-	Aisle       pgtype.Text `json:"aisle"`
-	Shelf       pgtype.Text `json:"shelf"`
-	Bin         pgtype.Text `json:"bin"`
-	MaxCapacity pgtype.Int4 `json:"max_capacity"`
+	LocationID  int32          `json:"location_id"`
+	Aisle       sql.NullString `json:"aisle"`
+	Shelf       sql.NullString `json:"shelf"`
+	Bin         sql.NullString `json:"bin"`
+	MaxCapacity sql.NullInt32  `json:"max_capacity"`
 }
 
-func (q *Queries) UpdateLocation(ctx context.Context, arg *UpdateLocationParams) (*Location, error) {
-	row := q.db.QueryRow(ctx, updateLocation,
+func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) (Location, error) {
+	row := q.db.QueryRowContext(ctx, updateLocation,
 		arg.LocationID,
 		arg.Aisle,
 		arg.Shelf,
@@ -395,7 +406,7 @@ func (q *Queries) UpdateLocation(ctx context.Context, arg *UpdateLocationParams)
 		&i.MaxCapacity,
 		&i.IsActive,
 	)
-	return &i, err
+	return i, err
 }
 
 const updateWarehouse = `-- name: UpdateWarehouse :one
@@ -410,16 +421,16 @@ RETURNING warehouse_id, code, name, address, contact_person, contact_phone, cont
 `
 
 type UpdateWarehouseParams struct {
-	WarehouseID   int32       `json:"warehouse_id"`
-	Name          string      `json:"name"`
-	Address       pgtype.Text `json:"address"`
-	ContactPerson pgtype.Text `json:"contact_person"`
-	ContactPhone  pgtype.Text `json:"contact_phone"`
-	ContactEmail  pgtype.Text `json:"contact_email"`
+	WarehouseID   int32          `json:"warehouse_id"`
+	Name          string         `json:"name"`
+	Address       sql.NullString `json:"address"`
+	ContactPerson sql.NullString `json:"contact_person"`
+	ContactPhone  sql.NullString `json:"contact_phone"`
+	ContactEmail  sql.NullString `json:"contact_email"`
 }
 
-func (q *Queries) UpdateWarehouse(ctx context.Context, arg *UpdateWarehouseParams) (*Warehouse, error) {
-	row := q.db.QueryRow(ctx, updateWarehouse,
+func (q *Queries) UpdateWarehouse(ctx context.Context, arg UpdateWarehouseParams) (Warehouse, error) {
+	row := q.db.QueryRowContext(ctx, updateWarehouse,
 		arg.WarehouseID,
 		arg.Name,
 		arg.Address,
@@ -439,5 +450,5 @@ func (q *Queries) UpdateWarehouse(ctx context.Context, arg *UpdateWarehouseParam
 		&i.IsActive,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }

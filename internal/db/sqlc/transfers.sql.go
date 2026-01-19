@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createStockTransfer = `-- name: CreateStockTransfer :one
@@ -23,18 +22,18 @@ INSERT INTO stock_transfers (
 `
 
 type CreateStockTransferParams struct {
-	TransferNumber         string             `json:"transfer_number"`
-	FromWarehouseID        int32              `json:"from_warehouse_id"`
-	ToWarehouseID          int32              `json:"to_warehouse_id"`
-	Status                 NullTransferStatus `json:"status"`
-	TransferDate           time.Time          `json:"transfer_date"`
-	ExpectedCompletionDate time.Time          `json:"expected_completion_date"`
-	Notes                  pgtype.Text        `json:"notes"`
-	CreatedBy              pgtype.Int4        `json:"created_by"`
+	TransferNumber         string         `json:"transfer_number"`
+	FromWarehouseID        int32          `json:"from_warehouse_id"`
+	ToWarehouseID          int32          `json:"to_warehouse_id"`
+	Status                 TransferStatus `json:"status"`
+	TransferDate           time.Time      `json:"transfer_date"`
+	ExpectedCompletionDate time.Time      `json:"expected_completion_date"`
+	Notes                  sql.NullString `json:"notes"`
+	CreatedBy              sql.NullInt32  `json:"created_by"`
 }
 
-func (q *Queries) CreateStockTransfer(ctx context.Context, arg *CreateStockTransferParams) (*StockTransfer, error) {
-	row := q.db.QueryRow(ctx, createStockTransfer,
+func (q *Queries) CreateStockTransfer(ctx context.Context, arg CreateStockTransferParams) (StockTransfer, error) {
+	row := q.db.QueryRowContext(ctx, createStockTransfer,
 		arg.TransferNumber,
 		arg.FromWarehouseID,
 		arg.ToWarehouseID,
@@ -57,7 +56,7 @@ func (q *Queries) CreateStockTransfer(ctx context.Context, arg *CreateStockTrans
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const createStockTransferItem = `-- name: CreateStockTransferItem :one
@@ -70,15 +69,15 @@ INSERT INTO stock_transfer_items (
 `
 
 type CreateStockTransferItemParams struct {
-	TransferID     int32       `json:"transfer_id"`
-	ProductID      int32       `json:"product_id"`
-	Quantity       int32       `json:"quantity"`
-	FromLocationID pgtype.Int4 `json:"from_location_id"`
-	ToLocationID   pgtype.Int4 `json:"to_location_id"`
+	TransferID     int32         `json:"transfer_id"`
+	ProductID      int32         `json:"product_id"`
+	Quantity       int32         `json:"quantity"`
+	FromLocationID sql.NullInt32 `json:"from_location_id"`
+	ToLocationID   sql.NullInt32 `json:"to_location_id"`
 }
 
-func (q *Queries) CreateStockTransferItem(ctx context.Context, arg *CreateStockTransferItemParams) (*StockTransferItem, error) {
-	row := q.db.QueryRow(ctx, createStockTransferItem,
+func (q *Queries) CreateStockTransferItem(ctx context.Context, arg CreateStockTransferItemParams) (StockTransferItem, error) {
+	row := q.db.QueryRowContext(ctx, createStockTransferItem,
 		arg.TransferID,
 		arg.ProductID,
 		arg.Quantity,
@@ -96,7 +95,7 @@ func (q *Queries) CreateStockTransferItem(ctx context.Context, arg *CreateStockT
 		&i.FromLocationID,
 		&i.ToLocationID,
 	)
-	return &i, err
+	return i, err
 }
 
 const updateStockTransferItemQuantities = `-- name: UpdateStockTransferItemQuantities :one
@@ -110,13 +109,13 @@ RETURNING transfer_item_id, transfer_id, product_id, quantity, quantity_sent, qu
 `
 
 type UpdateStockTransferItemQuantitiesParams struct {
-	TransferItemID   int32       `json:"transfer_item_id"`
-	QuantitySent     pgtype.Int4 `json:"quantity_sent"`
-	QuantityReceived pgtype.Int4 `json:"quantity_received"`
+	TransferItemID   int32 `json:"transfer_item_id"`
+	QuantitySent     int32 `json:"quantity_sent"`
+	QuantityReceived int32 `json:"quantity_received"`
 }
 
-func (q *Queries) UpdateStockTransferItemQuantities(ctx context.Context, arg *UpdateStockTransferItemQuantitiesParams) (*StockTransferItem, error) {
-	row := q.db.QueryRow(ctx, updateStockTransferItemQuantities, arg.TransferItemID, arg.QuantitySent, arg.QuantityReceived)
+func (q *Queries) UpdateStockTransferItemQuantities(ctx context.Context, arg UpdateStockTransferItemQuantitiesParams) (StockTransferItem, error) {
+	row := q.db.QueryRowContext(ctx, updateStockTransferItemQuantities, arg.TransferItemID, arg.QuantitySent, arg.QuantityReceived)
 	var i StockTransferItem
 	err := row.Scan(
 		&i.TransferItemID,
@@ -128,7 +127,7 @@ func (q *Queries) UpdateStockTransferItemQuantities(ctx context.Context, arg *Up
 		&i.FromLocationID,
 		&i.ToLocationID,
 	)
-	return &i, err
+	return i, err
 }
 
 const updateStockTransferStatus = `-- name: UpdateStockTransferStatus :one
@@ -145,12 +144,12 @@ RETURNING transfer_id, transfer_number, from_warehouse_id, to_warehouse_id, stat
 `
 
 type UpdateStockTransferStatusParams struct {
-	TransferID int32              `json:"transfer_id"`
-	Status     NullTransferStatus `json:"status"`
+	TransferID int32          `json:"transfer_id"`
+	Status     TransferStatus `json:"status"`
 }
 
-func (q *Queries) UpdateStockTransferStatus(ctx context.Context, arg *UpdateStockTransferStatusParams) (*StockTransfer, error) {
-	row := q.db.QueryRow(ctx, updateStockTransferStatus, arg.TransferID, arg.Status)
+func (q *Queries) UpdateStockTransferStatus(ctx context.Context, arg UpdateStockTransferStatusParams) (StockTransfer, error) {
+	row := q.db.QueryRowContext(ctx, updateStockTransferStatus, arg.TransferID, arg.Status)
 	var i StockTransfer
 	err := row.Scan(
 		&i.TransferID,
@@ -164,5 +163,5 @@ func (q *Queries) UpdateStockTransferStatus(ctx context.Context, arg *UpdateStoc
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }

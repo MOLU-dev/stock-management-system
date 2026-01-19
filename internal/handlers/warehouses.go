@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -9,13 +10,26 @@ import (
 	db "github.com/molu/stock-management-system/internal/db/sqlc"
 )
 
-type WarehouseHandler struct {
-	queries *db.Queries
+func NullInt32(i int64) sql.NullInt32 {
+	if i == 0 {
+		return sql.NullInt32{Valid: false}
+	}
+	return sql.NullInt32{
+		Int32: int32(i),
+		Valid: true,
+	}
 }
 
-func NewWarehouseHandler(queries *db.Queries) *WarehouseHandler {
+
+
+type WarehouseHandler struct {
+	queries db.SingleDb
+}
+
+func NewWarehouseHandler(queries db.SingleDb) *WarehouseHandler {
 	return &WarehouseHandler{queries: queries}
 }
+
 
 type CreateWarehouseRequest struct {
 	Code          string  `json:"code"`
@@ -38,10 +52,10 @@ func (h *WarehouseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	warehouse, err := h.queries.CreateWarehouse(ctx, db.CreateWarehouseParams{
 		Code:          req.Code,
 		Name:          req.Name,
-		Address:       req.Address,
-		ContactPerson: req.ContactPerson,
-		ContactPhone:  req.ContactPhone,
-		ContactEmail:  req.ContactEmail,
+		Address:       toNullString(req.Address),
+		ContactPerson: toNullString(req.ContactPerson),
+		ContactPhone:  toNullString(req.ContactPhone),
+		ContactEmail:  toNullString(req.ContactEmail),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create warehouse")
@@ -61,7 +75,7 @@ func (h *WarehouseHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warehouse, err := h.queries.GetWarehouse(ctx, id)
+	warehouse, err := h.queries.GetWarehouse(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Warehouse not found")
 		return
@@ -112,12 +126,12 @@ func (h *WarehouseHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	warehouse, err := h.queries.UpdateWarehouse(ctx, db.UpdateWarehouseParams{
-		WarehouseID:   id,
+		WarehouseID:   int32(id),
 		Name:          req.Name,
-		Address:       req.Address,
-		ContactPerson: req.ContactPerson,
-		ContactPhone:  req.ContactPhone,
-		ContactEmail:  req.ContactEmail,
+		Address:       toNullString(req.Address),
+		ContactPerson: toNullString(req.ContactPerson),
+		ContactPhone:  toNullString(req.ContactPhone),
+		ContactEmail:  toNullString(req.ContactEmail),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to update warehouse")
@@ -137,7 +151,7 @@ func (h *WarehouseHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.queries.DeactivateWarehouse(ctx, id); err != nil {
+	if err := h.queries.DeactivateWarehouse(ctx, int32(id)); err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to deactivate warehouse")
 		return
 	}
@@ -170,12 +184,12 @@ func (h *WarehouseHandler) CreateLocation(w http.ResponseWriter, r *http.Request
 	}
 
 	location, err := h.queries.CreateLocation(ctx, db.CreateLocationParams{
-		WarehouseID:  warehouseID,
+		WarehouseID:  int32(warehouseID),
 		LocationCode: req.LocationCode,
-		Aisle:        req.Aisle,
-		Shelf:        req.Shelf,
-		Bin:          req.Bin,
-		MaxCapacity:  req.MaxCapacity,
+		Aisle:        toNullString(req.Aisle),
+		Shelf:        toNullString(req.Shelf),
+		Bin:          toNullString(req.Bin),
+		MaxCapacity:  toNullInt32FromInt32(req.MaxCapacity),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create location")
@@ -195,7 +209,7 @@ func (h *WarehouseHandler) GetLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location, err := h.queries.GetLocation(ctx, id)
+	location, err := h.queries.GetLocation(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Location not found")
 		return
@@ -214,7 +228,7 @@ func (h *WarehouseHandler) ListLocations(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	locations, err := h.queries.ListLocationsByWarehouse(ctx, warehouseID)
+	locations, err := h.queries.ListLocationsByWarehouse(ctx, int32(warehouseID))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to fetch locations")
 		return
@@ -240,11 +254,11 @@ func (h *WarehouseHandler) UpdateLocation(w http.ResponseWriter, r *http.Request
 	}
 
 	location, err := h.queries.UpdateLocation(ctx, db.UpdateLocationParams{
-		LocationID:  id,
-		Aisle:       req.Aisle,
-		Shelf:       req.Shelf,
-		Bin:         req.Bin,
-		MaxCapacity: req.MaxCapacity,
+		LocationID:  int32(id),
+		Aisle:       toNullString(req.Aisle),
+		Shelf:       toNullString(req.Shelf),
+		Bin:         toNullString(req.Bin),
+		MaxCapacity: toNullInt32FromInt32(req.MaxCapacity),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to update location")
@@ -264,7 +278,7 @@ func (h *WarehouseHandler) DeactivateLocation(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.queries.DeactivateLocation(ctx, id); err != nil {
+	if err := h.queries.DeactivateLocation(ctx, int32(id)); err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to deactivate location")
 		return
 	}

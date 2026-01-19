@@ -10,10 +10,10 @@ import (
 )
 
 type InventoryHandler struct {
-	queries *db.Queries
+	queries db.SingleDb
 }
 
-func NewInventoryHandler(queries *db.Queries) *InventoryHandler {
+func NewInventoryHandler(queries db.SingleDb) *InventoryHandler {
 	return &InventoryHandler{queries: queries}
 }
 
@@ -25,11 +25,12 @@ func (h *InventoryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	id64, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid inventory ID")
 		return
 	}
+	id := int32(id64)
 
 	inventory, err := h.queries.GetInventory(ctx, id)
 	if err != nil {
@@ -44,17 +45,19 @@ func (h *InventoryHandler) GetByProductWarehouse(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	productID, err := strconv.ParseInt(vars["productId"], 10, 64)
+	productID64, err := strconv.ParseInt(vars["productId"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid product ID")
 		return
 	}
+	productID := int32(productID64)
 
-	warehouseID, err := strconv.ParseInt(vars["warehouseId"], 10, 64)
+	warehouseID64, err := strconv.ParseInt(vars["warehouseId"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid warehouse ID")
 		return
 	}
+	warehouseID := int32(warehouseID64)
 
 	inventory, err := h.queries.GetInventoryByProductWarehouse(ctx, db.GetInventoryByProductWarehouseParams{
 		ProductID:   productID,
@@ -72,11 +75,12 @@ func (h *InventoryHandler) ListByWarehouse(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	warehouseID, err := strconv.ParseInt(vars["warehouseId"], 10, 64)
+	warehouseID64, err := strconv.ParseInt(vars["warehouseId"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid warehouse ID")
 		return
 	}
+	warehouseID := int32(warehouseID64)
 
 	limit := int32(50)
 	offset := int32(0)
@@ -98,11 +102,12 @@ func (h *InventoryHandler) ListByProduct(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	productID, err := strconv.ParseInt(vars["productId"], 10, 64)
+	productID64, err := strconv.ParseInt(vars["productId"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid product ID")
 		return
 	}
+	productID := int32(productID64)
 
 	inventory, err := h.queries.ListInventoryByProduct(ctx, productID)
 	if err != nil {
@@ -134,11 +139,12 @@ func (h *InventoryHandler) UpdateQuantity(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	id64, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid inventory ID")
 		return
 	}
+	id := int32(id64)
 
 	var req UpdateQuantityRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -167,11 +173,12 @@ func (h *InventoryHandler) Reserve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	id64, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid inventory ID")
 		return
 	}
+	id := int32(id64)
 
 	var req ReserveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -181,7 +188,7 @@ func (h *InventoryHandler) Reserve(w http.ResponseWriter, r *http.Request) {
 
 	inventory, err := h.queries.ReserveInventory(ctx, db.ReserveInventoryParams{
 		InventoryID: id,
-		Column2:     req.Quantity,
+		ReservedQuantity: req.Quantity,
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to reserve inventory")
@@ -195,11 +202,12 @@ func (h *InventoryHandler) Release(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	id64, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid inventory ID")
 		return
 	}
+	id := int32(id64)
 
 	var req ReserveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -209,7 +217,7 @@ func (h *InventoryHandler) Release(w http.ResponseWriter, r *http.Request) {
 
 	inventory, err := h.queries.ReleaseInventoryReservation(ctx, db.ReleaseInventoryReservationParams{
 		InventoryID: id,
-		Column2:     req.Quantity,
+		ReservedQuantity: req.Quantity,
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to release inventory")
@@ -227,11 +235,12 @@ func (h *InventoryHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	id64, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid inventory ID")
 		return
 	}
+	id := int32(id64)
 
 	var req UpdateStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

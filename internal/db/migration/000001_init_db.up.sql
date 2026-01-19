@@ -156,16 +156,16 @@ CREATE TABLE "products" (
   "weight" decimal(10,3),
   "dimensions" varchar(100),
   "supplier_id" int,
-  "min_stock_level" int DEFAULT 0,
+  "min_stock_level" int NOT NULL DEFAULT 0,
   "max_stock_level" int,
   "reorder_point" int,
   "safety_stock" int,
   "lead_time_days" int,
-  "auto_reorder" boolean DEFAULT false,
+  "auto_reorder" boolean NOT NULL DEFAULT false,
   "last_reorder_date" date,
-  "is_active" boolean DEFAULT true,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
-  "updated_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "is_active" boolean NOT NULL DEFAULT true,
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "updated_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "warehouses" (
@@ -176,8 +176,8 @@ CREATE TABLE "warehouses" (
   "contact_person" varchar(100),
   "contact_phone" varchar(20),
   "contact_email" varchar(100),
-  "is_active" boolean DEFAULT true,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "is_active" boolean NOT NULL DEFAULT true,
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "locations" (
@@ -188,7 +188,7 @@ CREATE TABLE "locations" (
   "shelf" varchar(20),
   "bin" varchar(20),
   "max_capacity" int,
-  "is_active" boolean DEFAULT true
+  "is_active" boolean NOT NULL DEFAULT true
 );
 
 CREATE TABLE "inventory" (
@@ -196,16 +196,16 @@ CREATE TABLE "inventory" (
   "product_id" int NOT NULL,
   "warehouse_id" int NOT NULL,
   "location_id" int,
-  "quantity" int DEFAULT 0,
-  "reserved_quantity" int DEFAULT 0,
+  "quantity" int NOT NULL DEFAULT 0,
+  "reserved_quantity" int NOT NULL DEFAULT 0,
   "batch_number" varchar(100),
   "expiry_date" date,
   "manufacturing_date" date,
   "serial_number" varchar(100),
-  "status" inventory_status DEFAULT 'in_stock',
+  "status" inventory_status NOT NULL DEFAULT 'in_stock',
   "last_counted_date" date,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
-  "updated_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  "updated_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "suppliers" (
@@ -220,8 +220,8 @@ CREATE TABLE "suppliers" (
   "payment_terms" varchar(100),
   "lead_time_days" int,
   "rating" decimal(3,2),
-  "is_active" boolean DEFAULT true,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "is_active" boolean NOT NULL DEFAULT true,
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "categories" (
@@ -230,7 +230,7 @@ CREATE TABLE "categories" (
   "name" varchar(100) NOT NULL,
   "parent_category_id" int,
   "description" text,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "purchase_orders" (
@@ -239,11 +239,11 @@ CREATE TABLE "purchase_orders" (
   "supplier_id" int NOT NULL,
   "order_date" date NOT NULL,
   "expected_delivery_date" date,
-  "status" purchase_order_status DEFAULT 'draft',
+  "status" purchase_order_status NOT NULL DEFAULT 'draft',
   "total_amount" decimal(10,2),
   "notes" text,
   "created_by" int,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "purchase_order_items" (
@@ -251,9 +251,9 @@ CREATE TABLE "purchase_order_items" (
   "po_id" int NOT NULL,
   "product_id" int NOT NULL,
   "quantity_ordered" int NOT NULL,
-  "quantity_received" int DEFAULT 0,
+  "quantity_received" int NOT NULL DEFAULT 0,
   "unit_price" decimal(10,2) NOT NULL,
-  "total_price" decimal(10,2)
+  "total_price" decimal(10,2) NOT NULL
 );
 
 CREATE TABLE "stock_movements" (
@@ -269,7 +269,7 @@ CREATE TABLE "stock_movements" (
   "reference_id" int,
   "reference_table" varchar(50),
   "notes" text,
-  "movement_date" timestamp DEFAULT (CURRENT_TIMESTAMP),
+  "movement_date" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   "created_by" int
 );
 
@@ -278,12 +278,12 @@ CREATE TABLE "stock_transfers" (
   "transfer_number" varchar(50) UNIQUE NOT NULL,
   "from_warehouse_id" int NOT NULL,
   "to_warehouse_id" int NOT NULL,
-  "status" transfer_status DEFAULT 'pending',
+  "status" transfer_status NOT NULL DEFAULT 'pending',
   "transfer_date" date,
   "expected_completion_date" date,
   "notes" text,
   "created_by" int,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "stock_transfer_items" (
@@ -291,8 +291,8 @@ CREATE TABLE "stock_transfer_items" (
   "transfer_id" int NOT NULL,
   "product_id" int NOT NULL,
   "quantity" int NOT NULL,
-  "quantity_sent" int DEFAULT 0,
-  "quantity_received" int DEFAULT 0,
+  "quantity_sent" int NOT NULL DEFAULT 0,
+  "quantity_received" int NOT NULL DEFAULT 0,
   "from_location_id" int,
   "to_location_id" int
 );
@@ -303,13 +303,13 @@ CREATE TABLE "stock_adjustments" (
   "warehouse_id" int NOT NULL,
   "adjustment_date" date,
   "reason" adjustment_reason NOT NULL,
-  "status" adjustment_status DEFAULT 'pending',
+  "status" adjustment_status NOT NULL DEFAULT 'pending',
   "total_value" decimal(10,2),
   "notes" text,
   "approved_by" int,
   "approved_at" timestamp,
   "created_by" int,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "stock_adjustment_items" (
@@ -318,7 +318,7 @@ CREATE TABLE "stock_adjustment_items" (
   "product_id" int NOT NULL,
   "quantity_before" int NOT NULL,
   "quantity_adjusted" int NOT NULL,
-  "quantity_after" int,
+  "quantity_after" int NOT NULL,
   "cost_price" decimal(10,2),
   "adjustment_value" decimal(10,2),
   "reason" varchar(255)
@@ -330,10 +330,10 @@ CREATE TABLE "stock_takes" (
   "warehouse_id" int NOT NULL,
   "start_date" date,
   "end_date" date,
-  "status" stocktake_status DEFAULT 'planned',
+  "status" stocktake_status NOT NULL DEFAULT 'planned',
   "notes" text,
   "created_by" int,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "stocktake_items" (
@@ -353,11 +353,11 @@ CREATE TABLE "reconciliation_rules" (
   "rule_id" INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   "warehouse_id" int,
   "product_category_id" int,
-  "reconciliation_frequency" reconciliation_frequency DEFAULT 'weekly',
-  "variance_threshold" decimal(5,2) DEFAULT 5,
-  "auto_adjust" boolean DEFAULT false,
+  "reconciliation_frequency" reconciliation_frequency NOT NULL DEFAULT 'weekly',
+  "variance_threshold" decimal(5,2) NOT NULL DEFAULT 5,
+  "auto_adjust" boolean NOT NULL DEFAULT false,
   "notify_users" json,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "inventory_forecasting" (
@@ -378,17 +378,17 @@ CREATE TABLE "shrinkage_incidents" (
   "incident_type" incident_type NOT NULL,
   "estimated_value" decimal(10,2),
   "detected_by" int,
-  "resolved" boolean DEFAULT false,
+  "resolved" boolean NOT NULL DEFAULT false,
   "resolution_notes" text,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "cycle_count_schedule" (
   "schedule_id" INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   "warehouse_id" int,
   "zone_id" int,
-  "frequency_days" int DEFAULT 7,
-  "counting_method" counting_method DEFAULT 'ABC',
+  "frequency_days" int NOT NULL DEFAULT 7,
+  "counting_method" counting_method NOT NULL DEFAULT 'ABC',
   "last_counted" date,
   "next_scheduled" date,
   "assigned_to" int
@@ -401,7 +401,7 @@ CREATE TABLE "product_identifiers" (
   "identifier_value" varchar(255) NOT NULL,
   "location_id" int,
   "status" identifier_status,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "location_history" (
@@ -411,7 +411,7 @@ CREATE TABLE "location_history" (
   "to_location_id" int,
   "movement_type" location_movement_type,
   "scanned_by" int,
-  "scanned_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
+  "scanned_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   "device_id" varchar(100)
 );
 
@@ -419,11 +419,11 @@ CREATE TABLE "product_suppliers" (
   "product_supplier_id" INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   "product_id" int NOT NULL,
   "supplier_id" int NOT NULL,
-  "priority" int DEFAULT 1,
+  "priority" int NOT NULL DEFAULT 1,
   "lead_time_days" int,
   "unit_price" decimal(10,2),
   "min_order_quantity" int,
-  "is_active" boolean DEFAULT true,
+  "is_active" boolean NOT NULL DEFAULT true,
   "last_order_date" date,
   "performance_rating" decimal(3,2)
 );
@@ -431,9 +431,9 @@ CREATE TABLE "product_suppliers" (
 CREATE TABLE "picking_routes" (
   "route_id" INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   "warehouse_id" int NOT NULL,
-  "zone_sequence" json,
+  "zone_sequence" json NOT NULL,
   "estimated_time_minutes" int,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "picking_waves" (
@@ -441,12 +441,12 @@ CREATE TABLE "picking_waves" (
   "warehouse_id" int NOT NULL,
   "wave_number" varchar(50) UNIQUE,
   "status" wave_status,
-  "priority" int DEFAULT 5,
+  "priority" int NOT NULL DEFAULT 5,
   "total_items" int,
   "assigned_to" int,
   "start_time" datetime,
   "end_time" datetime,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "abc_classification" (
@@ -469,8 +469,8 @@ CREATE TABLE "reorder_rules" (
   "condition_value" json,
   "action_type" action_type,
   "action_parameters" json,
-  "is_active" boolean DEFAULT true,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "is_active" boolean NOT NULL DEFAULT true,
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "units_of_measure" (
@@ -486,10 +486,10 @@ CREATE TABLE "users" (
   "email" varchar(100) UNIQUE NOT NULL,
   "password_hash" varchar(255) NOT NULL,
   "full_name" varchar(100) NOT NULL,
-  "role" user_role DEFAULT 'staff',
+  "role" user_role NOT NULL DEFAULT 'staff',
   "warehouse_id" int,
-  "is_active" boolean DEFAULT true,
-  "created_at" timestamp DEFAULT (CURRENT_TIMESTAMP)
+  "is_active" boolean NOT NULL DEFAULT true,
+  "created_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE "audit_log" (
@@ -499,7 +499,7 @@ CREATE TABLE "audit_log" (
   "action" audit_action NOT NULL,
   "old_values" json,
   "new_values" json,
-  "changed_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
+  "changed_at" timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   "changed_by" int
 );
 

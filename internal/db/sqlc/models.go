@@ -5,12 +5,14 @@
 package db
 
 import (
+	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type AbcCategory string
@@ -1312,61 +1314,61 @@ func AllWaveStatusValues() []WaveStatus {
 }
 
 type AbcClassification struct {
-	ClassificationID int32       `json:"classification_id"`
-	ProductID        int32       `json:"product_id"`
-	WarehouseID      int32       `json:"warehouse_id"`
-	Category         AbcCategory `json:"category"`
-	Criteria         AbcCriteria `json:"criteria"`
-	Ranking          pgtype.Int4 `json:"ranking"`
-	LastUpdated      time.Time   `json:"last_updated"`
+	ClassificationID int32         `json:"classification_id"`
+	ProductID        int32         `json:"product_id"`
+	WarehouseID      int32         `json:"warehouse_id"`
+	Category         AbcCategory   `json:"category"`
+	Criteria         AbcCriteria   `json:"criteria"`
+	Ranking          sql.NullInt32 `json:"ranking"`
+	LastUpdated      time.Time     `json:"last_updated"`
 }
 
 type AuditLog struct {
-	AuditID   int32       `json:"audit_id"`
-	TableName string      `json:"table_name"`
-	RecordID  int32       `json:"record_id"`
-	Action    AuditAction `json:"action"`
-	OldValues []byte      `json:"old_values"`
-	NewValues []byte      `json:"new_values"`
-	ChangedAt time.Time   `json:"changed_at"`
-	ChangedBy pgtype.Int4 `json:"changed_by"`
+	AuditID   int32                 `json:"audit_id"`
+	TableName string                `json:"table_name"`
+	RecordID  int32                 `json:"record_id"`
+	Action    AuditAction           `json:"action"`
+	OldValues pqtype.NullRawMessage `json:"old_values"`
+	NewValues pqtype.NullRawMessage `json:"new_values"`
+	ChangedAt time.Time             `json:"changed_at"`
+	ChangedBy sql.NullInt32         `json:"changed_by"`
 }
 
 type Category struct {
-	CategoryID       int32       `json:"category_id"`
-	CategoryCode     string      `json:"category_code"`
-	Name             string      `json:"name"`
-	ParentCategoryID pgtype.Int4 `json:"parent_category_id"`
-	Description      pgtype.Text `json:"description"`
-	CreatedAt        time.Time   `json:"created_at"`
+	CategoryID       int32          `json:"category_id"`
+	CategoryCode     string         `json:"category_code"`
+	Name             string         `json:"name"`
+	ParentCategoryID sql.NullInt32  `json:"parent_category_id"`
+	Description      sql.NullString `json:"description"`
+	CreatedAt        time.Time      `json:"created_at"`
 }
 
 type CycleCountSchedule struct {
-	ScheduleID     int32              `json:"schedule_id"`
-	WarehouseID    pgtype.Int4        `json:"warehouse_id"`
-	ZoneID         pgtype.Int4        `json:"zone_id"`
-	FrequencyDays  pgtype.Int4        `json:"frequency_days"`
-	CountingMethod NullCountingMethod `json:"counting_method"`
-	LastCounted    time.Time          `json:"last_counted"`
-	NextScheduled  time.Time          `json:"next_scheduled"`
-	AssignedTo     pgtype.Int4        `json:"assigned_to"`
+	ScheduleID     int32          `json:"schedule_id"`
+	WarehouseID    sql.NullInt32  `json:"warehouse_id"`
+	ZoneID         sql.NullInt32  `json:"zone_id"`
+	FrequencyDays  int32          `json:"frequency_days"`
+	CountingMethod CountingMethod `json:"counting_method"`
+	LastCounted    time.Time      `json:"last_counted"`
+	NextScheduled  time.Time      `json:"next_scheduled"`
+	AssignedTo     sql.NullInt32  `json:"assigned_to"`
 }
 
 type Inventory struct {
-	InventoryID       int32               `json:"inventory_id"`
-	ProductID         int32               `json:"product_id"`
-	WarehouseID       int32               `json:"warehouse_id"`
-	LocationID        pgtype.Int4         `json:"location_id"`
-	Quantity          pgtype.Int4         `json:"quantity"`
-	ReservedQuantity  pgtype.Int4         `json:"reserved_quantity"`
-	BatchNumber       pgtype.Text         `json:"batch_number"`
-	ExpiryDate        time.Time           `json:"expiry_date"`
-	ManufacturingDate time.Time           `json:"manufacturing_date"`
-	SerialNumber      pgtype.Text         `json:"serial_number"`
-	Status            NullInventoryStatus `json:"status"`
-	LastCountedDate   time.Time           `json:"last_counted_date"`
-	CreatedAt         time.Time           `json:"created_at"`
-	UpdatedAt         time.Time           `json:"updated_at"`
+	InventoryID       int32           `json:"inventory_id"`
+	ProductID         int32           `json:"product_id"`
+	WarehouseID       int32           `json:"warehouse_id"`
+	LocationID        sql.NullInt32   `json:"location_id"`
+	Quantity          int32           `json:"quantity"`
+	ReservedQuantity  int32           `json:"reserved_quantity"`
+	BatchNumber       sql.NullString  `json:"batch_number"`
+	ExpiryDate        time.Time       `json:"expiry_date"`
+	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	SerialNumber      sql.NullString  `json:"serial_number"`
+	Status            InventoryStatus `json:"status"`
+	LastCountedDate   time.Time       `json:"last_counted_date"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
 }
 
 type InventoryForecasting struct {
@@ -1374,51 +1376,51 @@ type InventoryForecasting struct {
 	ProductID              int32           `json:"product_id"`
 	WarehouseID            int32           `json:"warehouse_id"`
 	ForecastDate           time.Time       `json:"forecast_date"`
-	PredictedDemand        pgtype.Int4     `json:"predicted_demand"`
+	PredictedDemand        sql.NullInt32   `json:"predicted_demand"`
 	ConfidenceLevel        decimal.Decimal `json:"confidence_level"`
-	CalculatedReorderPoint pgtype.Int4     `json:"calculated_reorder_point"`
-	CalculatedSafetyStock  pgtype.Int4     `json:"calculated_safety_stock"`
+	CalculatedReorderPoint sql.NullInt32   `json:"calculated_reorder_point"`
+	CalculatedSafetyStock  sql.NullInt32   `json:"calculated_safety_stock"`
 }
 
 type Location struct {
-	LocationID   int32       `json:"location_id"`
-	WarehouseID  int32       `json:"warehouse_id"`
-	LocationCode string      `json:"location_code"`
-	Aisle        pgtype.Text `json:"aisle"`
-	Shelf        pgtype.Text `json:"shelf"`
-	Bin          pgtype.Text `json:"bin"`
-	MaxCapacity  pgtype.Int4 `json:"max_capacity"`
-	IsActive     pgtype.Bool `json:"is_active"`
+	LocationID   int32          `json:"location_id"`
+	WarehouseID  int32          `json:"warehouse_id"`
+	LocationCode string         `json:"location_code"`
+	Aisle        sql.NullString `json:"aisle"`
+	Shelf        sql.NullString `json:"shelf"`
+	Bin          sql.NullString `json:"bin"`
+	MaxCapacity  sql.NullInt32  `json:"max_capacity"`
+	IsActive     bool           `json:"is_active"`
 }
 
 type LocationHistory struct {
 	HistoryID      int32                    `json:"history_id"`
 	IdentifierID   int32                    `json:"identifier_id"`
-	FromLocationID pgtype.Int4              `json:"from_location_id"`
-	ToLocationID   pgtype.Int4              `json:"to_location_id"`
+	FromLocationID sql.NullInt32            `json:"from_location_id"`
+	ToLocationID   sql.NullInt32            `json:"to_location_id"`
 	MovementType   NullLocationMovementType `json:"movement_type"`
-	ScannedBy      pgtype.Int4              `json:"scanned_by"`
+	ScannedBy      sql.NullInt32            `json:"scanned_by"`
 	ScannedAt      time.Time                `json:"scanned_at"`
-	DeviceID       pgtype.Text              `json:"device_id"`
+	DeviceID       sql.NullString           `json:"device_id"`
 }
 
 type PickingRoute struct {
 	RouteID     int32 `json:"route_id"`
 	WarehouseID int32 `json:"warehouse_id"`
 	// Array of zone IDs in optimal order
-	ZoneSequence         []byte      `json:"zone_sequence"`
-	EstimatedTimeMinutes pgtype.Int4 `json:"estimated_time_minutes"`
-	CreatedAt            time.Time   `json:"created_at"`
+	ZoneSequence         json.RawMessage `json:"zone_sequence"`
+	EstimatedTimeMinutes sql.NullInt32   `json:"estimated_time_minutes"`
+	CreatedAt            time.Time       `json:"created_at"`
 }
 
 type PickingWafe struct {
 	WaveID      int32          `json:"wave_id"`
 	WarehouseID int32          `json:"warehouse_id"`
-	WaveNumber  pgtype.Text    `json:"wave_number"`
+	WaveNumber  sql.NullString `json:"wave_number"`
 	Status      NullWaveStatus `json:"status"`
-	Priority    pgtype.Int4    `json:"priority"`
-	TotalItems  pgtype.Int4    `json:"total_items"`
-	AssignedTo  pgtype.Int4    `json:"assigned_to"`
+	Priority    int32          `json:"priority"`
+	TotalItems  sql.NullInt32  `json:"total_items"`
+	AssignedTo  sql.NullInt32  `json:"assigned_to"`
 	StartTime   time.Time      `json:"start_time"`
 	EndTime     time.Time      `json:"end_time"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -1428,22 +1430,22 @@ type Product struct {
 	ProductID       int32           `json:"product_id"`
 	Sku             string          `json:"sku"`
 	Name            string          `json:"name"`
-	Description     pgtype.Text     `json:"description"`
-	CategoryID      pgtype.Int4     `json:"category_id"`
+	Description     sql.NullString  `json:"description"`
+	CategoryID      sql.NullInt32   `json:"category_id"`
 	UnitPrice       decimal.Decimal `json:"unit_price"`
 	CostPrice       decimal.Decimal `json:"cost_price"`
-	Barcode         pgtype.Text     `json:"barcode"`
+	Barcode         sql.NullString  `json:"barcode"`
 	Weight          decimal.Decimal `json:"weight"`
-	Dimensions      pgtype.Text     `json:"dimensions"`
-	SupplierID      pgtype.Int4     `json:"supplier_id"`
-	MinStockLevel   pgtype.Int4     `json:"min_stock_level"`
-	MaxStockLevel   pgtype.Int4     `json:"max_stock_level"`
-	ReorderPoint    pgtype.Int4     `json:"reorder_point"`
-	SafetyStock     pgtype.Int4     `json:"safety_stock"`
-	LeadTimeDays    pgtype.Int4     `json:"lead_time_days"`
-	AutoReorder     pgtype.Bool     `json:"auto_reorder"`
+	Dimensions      sql.NullString  `json:"dimensions"`
+	SupplierID      sql.NullInt32   `json:"supplier_id"`
+	MinStockLevel   int32           `json:"min_stock_level"`
+	MaxStockLevel   sql.NullInt32   `json:"max_stock_level"`
+	ReorderPoint    sql.NullInt32   `json:"reorder_point"`
+	SafetyStock     sql.NullInt32   `json:"safety_stock"`
+	LeadTimeDays    sql.NullInt32   `json:"lead_time_days"`
+	AutoReorder     bool            `json:"auto_reorder"`
 	LastReorderDate time.Time       `json:"last_reorder_date"`
-	IsActive        pgtype.Bool     `json:"is_active"`
+	IsActive        bool            `json:"is_active"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 }
@@ -1453,7 +1455,7 @@ type ProductIdentifier struct {
 	ProductID       int32                `json:"product_id"`
 	IdentifierType  IdentifierType       `json:"identifier_type"`
 	IdentifierValue string               `json:"identifier_value"`
-	LocationID      pgtype.Int4          `json:"location_id"`
+	LocationID      sql.NullInt32        `json:"location_id"`
 	Status          NullIdentifierStatus `json:"status"`
 	CreatedAt       time.Time            `json:"created_at"`
 }
@@ -1463,26 +1465,26 @@ type ProductSupplier struct {
 	ProductID         int32 `json:"product_id"`
 	SupplierID        int32 `json:"supplier_id"`
 	// 1 = primary, 2 = secondary, etc.
-	Priority          pgtype.Int4     `json:"priority"`
-	LeadTimeDays      pgtype.Int4     `json:"lead_time_days"`
+	Priority          int32           `json:"priority"`
+	LeadTimeDays      sql.NullInt32   `json:"lead_time_days"`
 	UnitPrice         decimal.Decimal `json:"unit_price"`
-	MinOrderQuantity  pgtype.Int4     `json:"min_order_quantity"`
-	IsActive          pgtype.Bool     `json:"is_active"`
+	MinOrderQuantity  sql.NullInt32   `json:"min_order_quantity"`
+	IsActive          bool            `json:"is_active"`
 	LastOrderDate     time.Time       `json:"last_order_date"`
 	PerformanceRating decimal.Decimal `json:"performance_rating"`
 }
 
 type PurchaseOrder struct {
-	PoID                 int32                   `json:"po_id"`
-	PoNumber             string                  `json:"po_number"`
-	SupplierID           int32                   `json:"supplier_id"`
-	OrderDate            time.Time               `json:"order_date"`
-	ExpectedDeliveryDate time.Time               `json:"expected_delivery_date"`
-	Status               NullPurchaseOrderStatus `json:"status"`
-	TotalAmount          decimal.Decimal         `json:"total_amount"`
-	Notes                pgtype.Text             `json:"notes"`
-	CreatedBy            pgtype.Int4             `json:"created_by"`
-	CreatedAt            time.Time               `json:"created_at"`
+	PoID                 int32               `json:"po_id"`
+	PoNumber             string              `json:"po_number"`
+	SupplierID           int32               `json:"supplier_id"`
+	OrderDate            time.Time           `json:"order_date"`
+	ExpectedDeliveryDate time.Time           `json:"expected_delivery_date"`
+	Status               PurchaseOrderStatus `json:"status"`
+	TotalAmount          decimal.Decimal     `json:"total_amount"`
+	Notes                sql.NullString      `json:"notes"`
+	CreatedBy            sql.NullInt32       `json:"created_by"`
+	CreatedAt            time.Time           `json:"created_at"`
 }
 
 type PurchaseOrderItem struct {
@@ -1490,36 +1492,36 @@ type PurchaseOrderItem struct {
 	PoID             int32           `json:"po_id"`
 	ProductID        int32           `json:"product_id"`
 	QuantityOrdered  int32           `json:"quantity_ordered"`
-	QuantityReceived pgtype.Int4     `json:"quantity_received"`
+	QuantityReceived int32           `json:"quantity_received"`
 	UnitPrice        decimal.Decimal `json:"unit_price"`
 	// Generated: quantity_ordered * unit_price
 	TotalPrice decimal.Decimal `json:"total_price"`
 }
 
 type ReconciliationRule struct {
-	RuleID                  int32                       `json:"rule_id"`
-	WarehouseID             pgtype.Int4                 `json:"warehouse_id"`
-	ProductCategoryID       pgtype.Int4                 `json:"product_category_id"`
-	ReconciliationFrequency NullReconciliationFrequency `json:"reconciliation_frequency"`
-	VarianceThreshold       decimal.Decimal             `json:"variance_threshold"`
-	AutoAdjust              pgtype.Bool                 `json:"auto_adjust"`
+	RuleID                  int32                   `json:"rule_id"`
+	WarehouseID             sql.NullInt32           `json:"warehouse_id"`
+	ProductCategoryID       sql.NullInt32           `json:"product_category_id"`
+	ReconciliationFrequency ReconciliationFrequency `json:"reconciliation_frequency"`
+	VarianceThreshold       decimal.Decimal         `json:"variance_threshold"`
+	AutoAdjust              bool                    `json:"auto_adjust"`
 	// Array of user IDs to notify
-	NotifyUsers []byte    `json:"notify_users"`
-	CreatedAt   time.Time `json:"created_at"`
+	NotifyUsers pqtype.NullRawMessage `json:"notify_users"`
+	CreatedAt   time.Time             `json:"created_at"`
 }
 
 type ReorderRule struct {
-	RuleID           int32             `json:"rule_id"`
-	RuleName         string            `json:"rule_name"`
-	ProductID        pgtype.Int4       `json:"product_id"`
-	CategoryID       pgtype.Int4       `json:"category_id"`
-	SupplierID       pgtype.Int4       `json:"supplier_id"`
-	ConditionType    NullConditionType `json:"condition_type"`
-	ConditionValue   []byte            `json:"condition_value"`
-	ActionType       NullActionType    `json:"action_type"`
-	ActionParameters []byte            `json:"action_parameters"`
-	IsActive         pgtype.Bool       `json:"is_active"`
-	CreatedAt        time.Time         `json:"created_at"`
+	RuleID           int32                 `json:"rule_id"`
+	RuleName         string                `json:"rule_name"`
+	ProductID        sql.NullInt32         `json:"product_id"`
+	CategoryID       sql.NullInt32         `json:"category_id"`
+	SupplierID       sql.NullInt32         `json:"supplier_id"`
+	ConditionType    NullConditionType     `json:"condition_type"`
+	ConditionValue   pqtype.NullRawMessage `json:"condition_value"`
+	ActionType       NullActionType        `json:"action_type"`
+	ActionParameters pqtype.NullRawMessage `json:"action_parameters"`
+	IsActive         bool                  `json:"is_active"`
+	CreatedAt        time.Time             `json:"created_at"`
 }
 
 type ShrinkageIncident struct {
@@ -1528,25 +1530,25 @@ type ShrinkageIncident struct {
 	IncidentDate    time.Time       `json:"incident_date"`
 	IncidentType    IncidentType    `json:"incident_type"`
 	EstimatedValue  decimal.Decimal `json:"estimated_value"`
-	DetectedBy      pgtype.Int4     `json:"detected_by"`
-	Resolved        pgtype.Bool     `json:"resolved"`
-	ResolutionNotes pgtype.Text     `json:"resolution_notes"`
+	DetectedBy      sql.NullInt32   `json:"detected_by"`
+	Resolved        bool            `json:"resolved"`
+	ResolutionNotes sql.NullString  `json:"resolution_notes"`
 	CreatedAt       time.Time       `json:"created_at"`
 }
 
 type StockAdjustment struct {
-	AdjustmentID     int32                `json:"adjustment_id"`
-	AdjustmentNumber string               `json:"adjustment_number"`
-	WarehouseID      int32                `json:"warehouse_id"`
-	AdjustmentDate   time.Time            `json:"adjustment_date"`
-	Reason           AdjustmentReason     `json:"reason"`
-	Status           NullAdjustmentStatus `json:"status"`
-	TotalValue       decimal.Decimal      `json:"total_value"`
-	Notes            pgtype.Text          `json:"notes"`
-	ApprovedBy       pgtype.Int4          `json:"approved_by"`
-	ApprovedAt       time.Time            `json:"approved_at"`
-	CreatedBy        pgtype.Int4          `json:"created_by"`
-	CreatedAt        time.Time            `json:"created_at"`
+	AdjustmentID     int32            `json:"adjustment_id"`
+	AdjustmentNumber string           `json:"adjustment_number"`
+	WarehouseID      int32            `json:"warehouse_id"`
+	AdjustmentDate   time.Time        `json:"adjustment_date"`
+	Reason           AdjustmentReason `json:"reason"`
+	Status           AdjustmentStatus `json:"status"`
+	TotalValue       decimal.Decimal  `json:"total_value"`
+	Notes            sql.NullString   `json:"notes"`
+	ApprovedBy       sql.NullInt32    `json:"approved_by"`
+	ApprovedAt       time.Time        `json:"approved_at"`
+	CreatedBy        sql.NullInt32    `json:"created_by"`
+	CreatedAt        time.Time        `json:"created_at"`
 }
 
 type StockAdjustmentItem struct {
@@ -1556,123 +1558,123 @@ type StockAdjustmentItem struct {
 	QuantityBefore   int32 `json:"quantity_before"`
 	QuantityAdjusted int32 `json:"quantity_adjusted"`
 	// Generated: quantity_before + quantity_adjusted
-	QuantityAfter pgtype.Int4     `json:"quantity_after"`
+	QuantityAfter int32           `json:"quantity_after"`
 	CostPrice     decimal.Decimal `json:"cost_price"`
 	// Generated: quantity_adjusted * cost_price
 	AdjustmentValue decimal.Decimal `json:"adjustment_value"`
-	Reason          pgtype.Text     `json:"reason"`
+	Reason          sql.NullString  `json:"reason"`
 }
 
 type StockMovement struct {
-	MovementID      int32        `json:"movement_id"`
-	ReferenceNumber pgtype.Text  `json:"reference_number"`
-	ProductID       int32        `json:"product_id"`
-	WarehouseID     int32        `json:"warehouse_id"`
-	LocationID      pgtype.Int4  `json:"location_id"`
-	MovementType    MovementType `json:"movement_type"`
-	QuantityBefore  pgtype.Int4  `json:"quantity_before"`
-	QuantityChange  int32        `json:"quantity_change"`
-	QuantityAfter   pgtype.Int4  `json:"quantity_after"`
-	ReferenceID     pgtype.Int4  `json:"reference_id"`
-	ReferenceTable  pgtype.Text  `json:"reference_table"`
-	Notes           pgtype.Text  `json:"notes"`
-	MovementDate    time.Time    `json:"movement_date"`
-	CreatedBy       pgtype.Int4  `json:"created_by"`
+	MovementID      int32          `json:"movement_id"`
+	ReferenceNumber sql.NullString `json:"reference_number"`
+	ProductID       int32          `json:"product_id"`
+	WarehouseID     int32          `json:"warehouse_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	MovementType    MovementType   `json:"movement_type"`
+	QuantityBefore  sql.NullInt32  `json:"quantity_before"`
+	QuantityChange  int32          `json:"quantity_change"`
+	QuantityAfter   sql.NullInt32  `json:"quantity_after"`
+	ReferenceID     sql.NullInt32  `json:"reference_id"`
+	ReferenceTable  sql.NullString `json:"reference_table"`
+	Notes           sql.NullString `json:"notes"`
+	MovementDate    time.Time      `json:"movement_date"`
+	CreatedBy       sql.NullInt32  `json:"created_by"`
 }
 
 type StockTake struct {
-	StocktakeID     int32               `json:"stocktake_id"`
-	StocktakeNumber string              `json:"stocktake_number"`
-	WarehouseID     int32               `json:"warehouse_id"`
-	StartDate       time.Time           `json:"start_date"`
-	EndDate         time.Time           `json:"end_date"`
-	Status          NullStocktakeStatus `json:"status"`
-	Notes           pgtype.Text         `json:"notes"`
-	CreatedBy       pgtype.Int4         `json:"created_by"`
-	CreatedAt       time.Time           `json:"created_at"`
+	StocktakeID     int32           `json:"stocktake_id"`
+	StocktakeNumber string          `json:"stocktake_number"`
+	WarehouseID     int32           `json:"warehouse_id"`
+	StartDate       time.Time       `json:"start_date"`
+	EndDate         time.Time       `json:"end_date"`
+	Status          StocktakeStatus `json:"status"`
+	Notes           sql.NullString  `json:"notes"`
+	CreatedBy       sql.NullInt32   `json:"created_by"`
+	CreatedAt       time.Time       `json:"created_at"`
 }
 
 type StockTransfer struct {
-	TransferID             int32              `json:"transfer_id"`
-	TransferNumber         string             `json:"transfer_number"`
-	FromWarehouseID        int32              `json:"from_warehouse_id"`
-	ToWarehouseID          int32              `json:"to_warehouse_id"`
-	Status                 NullTransferStatus `json:"status"`
-	TransferDate           time.Time          `json:"transfer_date"`
-	ExpectedCompletionDate time.Time          `json:"expected_completion_date"`
-	Notes                  pgtype.Text        `json:"notes"`
-	CreatedBy              pgtype.Int4        `json:"created_by"`
-	CreatedAt              time.Time          `json:"created_at"`
+	TransferID             int32          `json:"transfer_id"`
+	TransferNumber         string         `json:"transfer_number"`
+	FromWarehouseID        int32          `json:"from_warehouse_id"`
+	ToWarehouseID          int32          `json:"to_warehouse_id"`
+	Status                 TransferStatus `json:"status"`
+	TransferDate           time.Time      `json:"transfer_date"`
+	ExpectedCompletionDate time.Time      `json:"expected_completion_date"`
+	Notes                  sql.NullString `json:"notes"`
+	CreatedBy              sql.NullInt32  `json:"created_by"`
+	CreatedAt              time.Time      `json:"created_at"`
 }
 
 type StockTransferItem struct {
-	TransferItemID   int32       `json:"transfer_item_id"`
-	TransferID       int32       `json:"transfer_id"`
-	ProductID        int32       `json:"product_id"`
-	Quantity         int32       `json:"quantity"`
-	QuantitySent     pgtype.Int4 `json:"quantity_sent"`
-	QuantityReceived pgtype.Int4 `json:"quantity_received"`
-	FromLocationID   pgtype.Int4 `json:"from_location_id"`
-	ToLocationID     pgtype.Int4 `json:"to_location_id"`
+	TransferItemID   int32         `json:"transfer_item_id"`
+	TransferID       int32         `json:"transfer_id"`
+	ProductID        int32         `json:"product_id"`
+	Quantity         int32         `json:"quantity"`
+	QuantitySent     int32         `json:"quantity_sent"`
+	QuantityReceived int32         `json:"quantity_received"`
+	FromLocationID   sql.NullInt32 `json:"from_location_id"`
+	ToLocationID     sql.NullInt32 `json:"to_location_id"`
 }
 
 type StocktakeItem struct {
-	StocktakeItemID int32       `json:"stocktake_item_id"`
-	StocktakeID     int32       `json:"stocktake_id"`
-	ProductID       int32       `json:"product_id"`
-	LocationID      pgtype.Int4 `json:"location_id"`
-	SystemQuantity  int32       `json:"system_quantity"`
-	CountedQuantity pgtype.Int4 `json:"counted_quantity"`
+	StocktakeItemID int32         `json:"stocktake_item_id"`
+	StocktakeID     int32         `json:"stocktake_id"`
+	ProductID       int32         `json:"product_id"`
+	LocationID      sql.NullInt32 `json:"location_id"`
+	SystemQuantity  int32         `json:"system_quantity"`
+	CountedQuantity sql.NullInt32 `json:"counted_quantity"`
 	// Generated: counted_quantity - system_quantity
-	Variance  pgtype.Int4 `json:"variance"`
-	CountedBy pgtype.Int4 `json:"counted_by"`
-	CountedAt time.Time   `json:"counted_at"`
-	Notes     pgtype.Text `json:"notes"`
+	Variance  sql.NullInt32  `json:"variance"`
+	CountedBy sql.NullInt32  `json:"counted_by"`
+	CountedAt time.Time      `json:"counted_at"`
+	Notes     sql.NullString `json:"notes"`
 }
 
 type Supplier struct {
 	SupplierID    int32           `json:"supplier_id"`
 	Code          string          `json:"code"`
 	Name          string          `json:"name"`
-	ContactPerson pgtype.Text     `json:"contact_person"`
-	Email         pgtype.Text     `json:"email"`
-	Phone         pgtype.Text     `json:"phone"`
-	Address       pgtype.Text     `json:"address"`
-	TaxID         pgtype.Text     `json:"tax_id"`
-	PaymentTerms  pgtype.Text     `json:"payment_terms"`
-	LeadTimeDays  pgtype.Int4     `json:"lead_time_days"`
+	ContactPerson sql.NullString  `json:"contact_person"`
+	Email         sql.NullString  `json:"email"`
+	Phone         sql.NullString  `json:"phone"`
+	Address       sql.NullString  `json:"address"`
+	TaxID         sql.NullString  `json:"tax_id"`
+	PaymentTerms  sql.NullString  `json:"payment_terms"`
+	LeadTimeDays  sql.NullInt32   `json:"lead_time_days"`
 	Rating        decimal.Decimal `json:"rating"`
-	IsActive      pgtype.Bool     `json:"is_active"`
+	IsActive      bool            `json:"is_active"`
 	CreatedAt     time.Time       `json:"created_at"`
 }
 
 type UnitsOfMeasure struct {
-	UomID       int32       `json:"uom_id"`
-	Code        string      `json:"code"`
-	Name        string      `json:"name"`
-	Description pgtype.Text `json:"description"`
+	UomID       int32          `json:"uom_id"`
+	Code        string         `json:"code"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
 }
 
 type User struct {
-	UserID       int32        `json:"user_id"`
-	Username     string       `json:"username"`
-	Email        string       `json:"email"`
-	PasswordHash string       `json:"password_hash"`
-	FullName     string       `json:"full_name"`
-	Role         NullUserRole `json:"role"`
-	WarehouseID  pgtype.Int4  `json:"warehouse_id"`
-	IsActive     pgtype.Bool  `json:"is_active"`
-	CreatedAt    time.Time    `json:"created_at"`
+	UserID       int32         `json:"user_id"`
+	Username     string        `json:"username"`
+	Email        string        `json:"email"`
+	PasswordHash string        `json:"password_hash"`
+	FullName     string        `json:"full_name"`
+	Role         UserRole      `json:"role"`
+	WarehouseID  sql.NullInt32 `json:"warehouse_id"`
+	IsActive     bool          `json:"is_active"`
+	CreatedAt    time.Time     `json:"created_at"`
 }
 
 type Warehouse struct {
-	WarehouseID   int32       `json:"warehouse_id"`
-	Code          string      `json:"code"`
-	Name          string      `json:"name"`
-	Address       pgtype.Text `json:"address"`
-	ContactPerson pgtype.Text `json:"contact_person"`
-	ContactPhone  pgtype.Text `json:"contact_phone"`
-	ContactEmail  pgtype.Text `json:"contact_email"`
-	IsActive      pgtype.Bool `json:"is_active"`
-	CreatedAt     time.Time   `json:"created_at"`
+	WarehouseID   int32          `json:"warehouse_id"`
+	Code          string         `json:"code"`
+	Name          string         `json:"name"`
+	Address       sql.NullString `json:"address"`
+	ContactPerson sql.NullString `json:"contact_person"`
+	ContactPhone  sql.NullString `json:"contact_phone"`
+	ContactEmail  sql.NullString `json:"contact_email"`
+	IsActive      bool           `json:"is_active"`
+	CreatedAt     time.Time      `json:"created_at"`
 }

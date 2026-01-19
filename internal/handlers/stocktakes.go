@@ -10,11 +10,19 @@ import (
 	db "github.com/molu/stock-management-system/internal/db/sqlc"
 )
 
-type StocktakeHandler struct {
-	queries *db.Queries
+// *time.Time → time.Time with zero check
+func toTimeOrZero(t *time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
 }
 
-func NewStocktakeHandler(queries *db.Queries) *StocktakeHandler {
+type StocktakeHandler struct {
+	queries db.SingleDb
+}
+
+func NewStocktakeHandler(queries db.SingleDb) *StocktakeHandler {
 	return &StocktakeHandler{queries: queries}
 }
 
@@ -39,12 +47,12 @@ func (h *StocktakeHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	stocktake, err := h.queries.CreateStocktake(ctx, db.CreateStocktakeParams{
 		StocktakeNumber: req.StocktakeNumber,
-		WarehouseID:     req.WarehouseID,
+		WarehouseID:     int32(req.WarehouseID),
 		StartDate:       req.StartDate,
-		EndDate:         req.EndDate,
+		EndDate:         toTimeOrZero(req.EndDate),
 		Status:          db.StocktakeStatus(req.Status),
-		Notes:           req.Notes,
-		CreatedBy:       req.CreatedBy,
+		Notes:           toNullString(req.Notes),             // *string → sql.NullString
+		CreatedBy:       toNullInt32FromValue(req.CreatedBy), // int64 → sql.NullInt32
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create stocktake")
@@ -64,7 +72,7 @@ func (h *StocktakeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stocktake, err := h.queries.GetStocktake(ctx, id)
+	stocktake, err := h.queries.GetStocktake(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Stocktake not found")
 		return
@@ -101,7 +109,7 @@ func (h *StocktakeHandler) ListByWarehouse(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	stocktakes, err := h.queries.ListStocktakesByWarehouse(ctx, warehouseID)
+	stocktakes, err := h.queries.ListStocktakesByWarehouse(ctx, int32(warehouseID))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to fetch stocktakes")
 		return
@@ -131,7 +139,7 @@ func (h *StocktakeHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) 
 	}
 
 	stocktake, err := h.queries.UpdateStocktakeStatus(ctx, db.UpdateStocktakeStatusParams{
-		StocktakeID: id,
+		StocktakeID: int32(id),
 		Status:      db.StocktakeStatus(req.Status),
 	})
 	if err != nil {
@@ -170,16 +178,17 @@ func (h *StocktakeHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item, err := h.queries.CreateStocktakeItem(ctx, db.CreateStocktakeItemParams{
-		StocktakeID:     stocktakeID,
-		ProductID:       req.ProductID,
-		LocationID:      req.LocationID,
-		SystemQuantity:  req.SystemQuantity,
-		CountedQuantity: req.CountedQuantity,
-		Variance:        req.Variance,
-		CountedBy:       req.CountedBy,
-		CountedAt:       req.CountedAt,
-		Notes:           req.Notes,
-	})
+	StocktakeID:     int32(stocktakeID),
+	ProductID:       int32(req.ProductID),
+	LocationID:      toNullInt32FromInt64(req.LocationID),
+	SystemQuantity:  req.SystemQuantity,
+	CountedQuantity: toNullInt32FromInt32(req.CountedQuantity),
+	Variance:        toNullInt32FromInt32(req.Variance),
+	CountedBy:       toNullInt32FromInt64(req.CountedBy),
+	CountedAt:       toTimeOrZero(req.CountedAt),  // convert *time.Time → time.Time
+	Notes:           toNullString(req.Notes),
+})
+
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create item")
 		return
@@ -198,7 +207,7 @@ func (h *StocktakeHandler) GetItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := h.queries.GetStocktakeItems(ctx, id)
+	items, err := h.queries.GetStocktakeItems(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to fetch items")
 		return
@@ -229,9 +238,9 @@ func (h *StocktakeHandler) UpdateItemCount(w http.ResponseWriter, r *http.Reques
 	}
 
 	item, err := h.queries.UpdateStocktakeItemCount(ctx, db.UpdateStocktakeItemCountParams{
-		StocktakeItemID: itemID,
-		CountedQuantity: req.CountedQuantity,
-		CountedBy:       &req.CountedBy,
+		StocktakeItemID: int32(itemID),
+		CountedQuantity: toNullInt32FromInt32(&req.CountedQuantity),
+		CountedBy:       toNullInt32FromValue(req.CountedBy),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to update count")
@@ -251,7 +260,7 @@ func (h *StocktakeHandler) GetVariances(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	variances, err := h.queries.GetStocktakeVariances(ctx, id)
+	variances, err := h.queries.GetStocktakeVariances(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to fetch variances")
 		return

@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/molu/stock-management-system/internal/config"
 	"github.com/molu/stock-management-system/internal/server"
-	"honnef.co/go/tools/config"
 )
 
 func main() {

@@ -1,11 +1,14 @@
+// internal/server/server.go
 package server
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib" // pgx driver for database/sql
+
 	"github.com/molu/stock-management-system/internal/config"
 	db "github.com/molu/stock-management-system/internal/db/sqlc"
 	"github.com/molu/stock-management-system/internal/router"
@@ -15,13 +18,13 @@ type Server struct {
 	config  *Config
 	router  http.Handler
 	httpSrv *http.Server
-	db      *pgxpool.Pool
+	db      *sql.DB
 	queries *db.Queries
 }
 
 type Config struct {
 	Address   string
-	DB        *pgxpool.Pool
+	DB        *sql.DB
 	Queries   *db.Queries
 	Env       string
 	JWTSecret string
@@ -30,24 +33,29 @@ type Config struct {
 func New(cfg *config.Config) (*Server, error) {
 	ctx := context.Background()
 
-	// Create database connection pool
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	// Open database connection using database/sql + pgx driver
+	dbConn, err := sql.Open("pgx", cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
 
+	// Configure connection pool (optional but recommended)
+	dbConn.SetMaxOpenConns(25)
+	dbConn.SetMaxIdleConns(25)
+	dbConn.SetConnMaxLifetime(5 * time.Minute)
+
 	// Test connection
-	if err := pool.Ping(ctx); err != nil {
+	if err := dbConn.PingContext(ctx); err != nil {
 		return nil, err
 	}
 
-	// Create queries instance
-	queries := db.New(pool)
+	// Create sqlc queries instance
+	queries := db.New(dbConn)
 
 	// Create server config
 	srvCfg := &Config{
 		Address:   cfg.ServerAddress,
-		DB:        pool,
+		DB:        dbConn,
 		Queries:   queries,
 		Env:       cfg.Environment,
 		JWTSecret: cfg.JWTSecret,
@@ -56,10 +64,11 @@ func New(cfg *config.Config) (*Server, error) {
 	// Create router
 	r := router.New(srvCfg.Queries, srvCfg.JWTSecret)
 
+	// Create HTTP server
 	srv := &Server{
 		config:  srvCfg,
 		router:  r,
-		db:      pool,
+		db:      dbConn,
 		queries: queries,
 		httpSrv: &http.Server{
 			Addr:         cfg.ServerAddress,
@@ -78,6 +87,8 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.db.Close()
+	if s.db != nil {
+		_ = s.db.Close()
+	}
 	return s.httpSrv.Shutdown(ctx)
 }

@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -24,12 +24,12 @@ RETURNING adjustment_id, adjustment_number, warehouse_id, adjustment_date, reaso
 `
 
 type ApproveStockAdjustmentParams struct {
-	AdjustmentID int32       `json:"adjustment_id"`
-	ApprovedBy   pgtype.Int4 `json:"approved_by"`
+	AdjustmentID int32         `json:"adjustment_id"`
+	ApprovedBy   sql.NullInt32 `json:"approved_by"`
 }
 
-func (q *Queries) ApproveStockAdjustment(ctx context.Context, arg *ApproveStockAdjustmentParams) (*StockAdjustment, error) {
-	row := q.db.QueryRow(ctx, approveStockAdjustment, arg.AdjustmentID, arg.ApprovedBy)
+func (q *Queries) ApproveStockAdjustment(ctx context.Context, arg ApproveStockAdjustmentParams) (StockAdjustment, error) {
+	row := q.db.QueryRowContext(ctx, approveStockAdjustment, arg.AdjustmentID, arg.ApprovedBy)
 	var i StockAdjustment
 	err := row.Scan(
 		&i.AdjustmentID,
@@ -45,7 +45,7 @@ func (q *Queries) ApproveStockAdjustment(ctx context.Context, arg *ApproveStockA
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const createStockAdjustment = `-- name: CreateStockAdjustment :one
@@ -58,18 +58,18 @@ INSERT INTO stock_adjustments (
 `
 
 type CreateStockAdjustmentParams struct {
-	AdjustmentNumber string               `json:"adjustment_number"`
-	WarehouseID      int32                `json:"warehouse_id"`
-	AdjustmentDate   time.Time            `json:"adjustment_date"`
-	Reason           AdjustmentReason     `json:"reason"`
-	Status           NullAdjustmentStatus `json:"status"`
-	TotalValue       decimal.Decimal      `json:"total_value"`
-	Notes            pgtype.Text          `json:"notes"`
-	CreatedBy        pgtype.Int4          `json:"created_by"`
+	AdjustmentNumber string           `json:"adjustment_number"`
+	WarehouseID      int32            `json:"warehouse_id"`
+	AdjustmentDate   time.Time        `json:"adjustment_date"`
+	Reason           AdjustmentReason `json:"reason"`
+	Status           AdjustmentStatus `json:"status"`
+	TotalValue       decimal.Decimal  `json:"total_value"`
+	Notes            sql.NullString   `json:"notes"`
+	CreatedBy        sql.NullInt32    `json:"created_by"`
 }
 
-func (q *Queries) CreateStockAdjustment(ctx context.Context, arg *CreateStockAdjustmentParams) (*StockAdjustment, error) {
-	row := q.db.QueryRow(ctx, createStockAdjustment,
+func (q *Queries) CreateStockAdjustment(ctx context.Context, arg CreateStockAdjustmentParams) (StockAdjustment, error) {
+	row := q.db.QueryRowContext(ctx, createStockAdjustment,
 		arg.AdjustmentNumber,
 		arg.WarehouseID,
 		arg.AdjustmentDate,
@@ -94,7 +94,7 @@ func (q *Queries) CreateStockAdjustment(ctx context.Context, arg *CreateStockAdj
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const createStockAdjustmentItem = `-- name: CreateStockAdjustmentItem :one
@@ -114,7 +114,7 @@ type CreateStockAdjustmentItemParams struct {
 	QuantityBefore   int32           `json:"quantity_before"`
 	QuantityAdjusted int32           `json:"quantity_adjusted"`
 	CostPrice        decimal.Decimal `json:"cost_price"`
-	Reason           pgtype.Text     `json:"reason"`
+	Reason           sql.NullString  `json:"reason"`
 }
 
 type CreateStockAdjustmentItemRow struct {
@@ -123,8 +123,8 @@ type CreateStockAdjustmentItemRow struct {
 	AdjustmentValue  int32 `json:"adjustment_value"`
 }
 
-func (q *Queries) CreateStockAdjustmentItem(ctx context.Context, arg *CreateStockAdjustmentItemParams) (*CreateStockAdjustmentItemRow, error) {
-	row := q.db.QueryRow(ctx, createStockAdjustmentItem,
+func (q *Queries) CreateStockAdjustmentItem(ctx context.Context, arg CreateStockAdjustmentItemParams) (CreateStockAdjustmentItemRow, error) {
+	row := q.db.QueryRowContext(ctx, createStockAdjustmentItem,
 		arg.AdjustmentID,
 		arg.ProductID,
 		arg.QuantityBefore,
@@ -134,5 +134,5 @@ func (q *Queries) CreateStockAdjustmentItem(ctx context.Context, arg *CreateStoc
 	)
 	var i CreateStockAdjustmentItemRow
 	err := row.Scan(&i.AdjustmentItemID, &i.QuantityAfter, &i.AdjustmentValue)
-	return &i, err
+	return i, err
 }

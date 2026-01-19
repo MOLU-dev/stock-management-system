@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -9,11 +10,41 @@ import (
 	db "github.com/molu/stock-management-system/internal/db/sqlc"
 )
 
-type StockMovementHandler struct {
-	queries *db.Queries
+func toNullStringFromValue(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{
+		String: s,
+		Valid:  true,
+	}
 }
 
-func NewStockMovementHandler(queries *db.Queries) *StockMovementHandler {
+func toNullInt32FromInt32(i *int32) sql.NullInt32 {
+	if i == nil {
+		return sql.NullInt32{Valid: false}
+	}
+	return sql.NullInt32{
+		Int32: *i,
+		Valid: true,
+	}
+}
+
+func toNullInt32FromValue(i int64) sql.NullInt32 {
+	if i == 0 {
+		return sql.NullInt32{Valid: false}
+	}
+	return sql.NullInt32{
+		Int32: int32(i),
+		Valid: true,
+	}
+}
+
+type StockMovementHandler struct {
+	queries db.SingleDb
+}
+
+func NewStockMovementHandler(queries db.SingleDb) *StockMovementHandler {
 	return &StockMovementHandler{queries: queries}
 }
 
@@ -42,18 +73,29 @@ func (h *StockMovementHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	movement, err := h.queries.CreateStockMovement(ctx, db.CreateStockMovementParams{
-		ReferenceNumber: req.ReferenceNumber,
-		ProductID:       req.ProductID,
-		WarehouseID:     req.WarehouseID,
-		LocationID:      req.LocationID,
+		ReferenceNumber: toNullStringFromValue(req.ReferenceNumber), // string → sql.NullString
+		ProductID:       int32(req.ProductID),
+		WarehouseID:     int32(req.WarehouseID),
+		LocationID:      toNullInt32FromInt64(req.LocationID), // *int64 → sql.NullInt32
 		MovementType:    db.MovementType(req.MovementType),
-		QuantityBefore:  req.QuantityBefore,
-		QuantityChange:  req.QuantityChange,
-		QuantityAfter:   req.QuantityAfter,
-		ReferenceID:     req.ReferenceID,
-		ReferenceTable:  req.ReferenceTable,
-		Notes:           req.Notes,
-		CreatedBy:       req.CreatedBy,
+
+		// these are int32 in your request, so convert properly
+		QuantityBefore: func() sql.NullInt32 {
+			q := req.QuantityBefore
+			return toNullInt32FromInt32(&q)
+		}(),
+
+		QuantityChange: req.QuantityChange,
+
+		QuantityAfter: func() sql.NullInt32 {
+			q := req.QuantityAfter
+			return toNullInt32FromInt32(&q)
+		}(),
+
+		ReferenceID:    toNullInt32FromInt64(req.ReferenceID), // *int64 → sql.NullInt32
+		ReferenceTable: toNullString(req.ReferenceTable),      // *string → sql.NullString
+		Notes:          toNullString(req.Notes),               // *string → sql.NullString
+		CreatedBy:      toNullInt32FromValue(req.CreatedBy),   // int64 → sql.NullInt32
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create stock movement")
@@ -73,7 +115,7 @@ func (h *StockMovementHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movement, err := h.queries.GetStockMovement(ctx, id)
+	movement, err := h.queries.GetStockMovement(ctx, int32(id))
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Stock movement not found")
 		return
@@ -96,7 +138,7 @@ func (h *StockMovementHandler) ListByProduct(w http.ResponseWriter, r *http.Requ
 	offset := int32(0)
 
 	movements, err := h.queries.ListStockMovementsByProduct(ctx, db.ListStockMovementsByProductParams{
-		ProductID: productID,
+		ProductID: int32(productID),
 		Limit:     limit,
 		Offset:    offset,
 	})
@@ -122,7 +164,7 @@ func (h *StockMovementHandler) ListByWarehouse(w http.ResponseWriter, r *http.Re
 	offset := int32(0)
 
 	movements, err := h.queries.ListStockMovementsByWarehouse(ctx, db.ListStockMovementsByWarehouseParams{
-		WarehouseID: warehouseID,
+		WarehouseID: int32(warehouseID),
 		Limit:       limit,
 		Offset:      offset,
 	})
@@ -174,8 +216,8 @@ func (h *StockMovementHandler) GetProductHistory(w http.ResponseWriter, r *http.
 	offset := int32(0)
 
 	movements, err := h.queries.GetProductMovementHistory(ctx, db.GetProductMovementHistoryParams{
-		ProductID:   productID,
-		WarehouseID: warehouseID,
+		ProductID:   int32(productID),
+		WarehouseID: int32(warehouseID),
 		Limit:       limit,
 		Offset:      offset,
 	})

@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -27,25 +27,25 @@ INSERT INTO products (
 type CreateProductParams struct {
 	Sku           string          `json:"sku"`
 	Name          string          `json:"name"`
-	Description   pgtype.Text     `json:"description"`
-	CategoryID    pgtype.Int4     `json:"category_id"`
+	Description   sql.NullString  `json:"description"`
+	CategoryID    sql.NullInt32   `json:"category_id"`
 	UnitPrice     decimal.Decimal `json:"unit_price"`
 	CostPrice     decimal.Decimal `json:"cost_price"`
-	Barcode       pgtype.Text     `json:"barcode"`
+	Barcode       sql.NullString  `json:"barcode"`
 	Weight        decimal.Decimal `json:"weight"`
-	Dimensions    pgtype.Text     `json:"dimensions"`
-	SupplierID    pgtype.Int4     `json:"supplier_id"`
-	MinStockLevel pgtype.Int4     `json:"min_stock_level"`
-	MaxStockLevel pgtype.Int4     `json:"max_stock_level"`
-	ReorderPoint  pgtype.Int4     `json:"reorder_point"`
-	SafetyStock   pgtype.Int4     `json:"safety_stock"`
-	LeadTimeDays  pgtype.Int4     `json:"lead_time_days"`
-	AutoReorder   pgtype.Bool     `json:"auto_reorder"`
-	IsActive      pgtype.Bool     `json:"is_active"`
+	Dimensions    sql.NullString  `json:"dimensions"`
+	SupplierID    sql.NullInt32   `json:"supplier_id"`
+	MinStockLevel int32           `json:"min_stock_level"`
+	MaxStockLevel sql.NullInt32   `json:"max_stock_level"`
+	ReorderPoint  sql.NullInt32   `json:"reorder_point"`
+	SafetyStock   sql.NullInt32   `json:"safety_stock"`
+	LeadTimeDays  sql.NullInt32   `json:"lead_time_days"`
+	AutoReorder   bool            `json:"auto_reorder"`
+	IsActive      bool            `json:"is_active"`
 }
 
-func (q *Queries) CreateProduct(ctx context.Context, arg *CreateProductParams) (*Product, error) {
-	row := q.db.QueryRow(ctx, createProduct,
+func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
+	row := q.db.QueryRowContext(ctx, createProduct,
 		arg.Sku,
 		arg.Name,
 		arg.Description,
@@ -88,7 +88,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg *CreateProductParams) (
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getProduct = `-- name: GetProduct :one
@@ -96,8 +96,8 @@ SELECT product_id, sku, name, description, category_id, unit_price, cost_price, 
 WHERE product_id = $1
 `
 
-func (q *Queries) GetProduct(ctx context.Context, productID int32) (*Product, error) {
-	row := q.db.QueryRow(ctx, getProduct, productID)
+func (q *Queries) GetProduct(ctx context.Context, productID int32) (Product, error) {
+	row := q.db.QueryRowContext(ctx, getProduct, productID)
 	var i Product
 	err := row.Scan(
 		&i.ProductID,
@@ -122,7 +122,7 @@ func (q *Queries) GetProduct(ctx context.Context, productID int32) (*Product, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getProductBySKU = `-- name: GetProductBySKU :one
@@ -130,8 +130,8 @@ SELECT product_id, sku, name, description, category_id, unit_price, cost_price, 
 WHERE sku = $1
 `
 
-func (q *Queries) GetProductBySKU(ctx context.Context, sku string) (*Product, error) {
-	row := q.db.QueryRow(ctx, getProductBySKU, sku)
+func (q *Queries) GetProductBySKU(ctx context.Context, sku string) (Product, error) {
+	row := q.db.QueryRowContext(ctx, getProductBySKU, sku)
 	var i Product
 	err := row.Scan(
 		&i.ProductID,
@@ -156,7 +156,7 @@ func (q *Queries) GetProductBySKU(ctx context.Context, sku string) (*Product, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const listProducts = `-- name: ListProducts :many
@@ -171,13 +171,13 @@ type ListProductsParams struct {
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListProducts(ctx context.Context, arg *ListProductsParams) ([]*Product, error) {
-	rows, err := q.db.Query(ctx, listProducts, arg.Limit, arg.Offset)
+func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, listProducts, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Product
+	var items []Product
 	for rows.Next() {
 		var i Product
 		if err := rows.Scan(
@@ -205,7 +205,10 @@ func (q *Queries) ListProducts(ctx context.Context, arg *ListProductsParams) ([]
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -228,34 +231,34 @@ type ListProductsBelowReorderPointRow struct {
 	ProductID       int32           `json:"product_id"`
 	Sku             string          `json:"sku"`
 	Name            string          `json:"name"`
-	Description     pgtype.Text     `json:"description"`
-	CategoryID      pgtype.Int4     `json:"category_id"`
+	Description     sql.NullString  `json:"description"`
+	CategoryID      sql.NullInt32   `json:"category_id"`
 	UnitPrice       decimal.Decimal `json:"unit_price"`
 	CostPrice       decimal.Decimal `json:"cost_price"`
-	Barcode         pgtype.Text     `json:"barcode"`
+	Barcode         sql.NullString  `json:"barcode"`
 	Weight          decimal.Decimal `json:"weight"`
-	Dimensions      pgtype.Text     `json:"dimensions"`
-	SupplierID      pgtype.Int4     `json:"supplier_id"`
-	MinStockLevel   pgtype.Int4     `json:"min_stock_level"`
-	MaxStockLevel   pgtype.Int4     `json:"max_stock_level"`
-	ReorderPoint    pgtype.Int4     `json:"reorder_point"`
-	SafetyStock     pgtype.Int4     `json:"safety_stock"`
-	LeadTimeDays    pgtype.Int4     `json:"lead_time_days"`
-	AutoReorder     pgtype.Bool     `json:"auto_reorder"`
+	Dimensions      sql.NullString  `json:"dimensions"`
+	SupplierID      sql.NullInt32   `json:"supplier_id"`
+	MinStockLevel   int32           `json:"min_stock_level"`
+	MaxStockLevel   sql.NullInt32   `json:"max_stock_level"`
+	ReorderPoint    sql.NullInt32   `json:"reorder_point"`
+	SafetyStock     sql.NullInt32   `json:"safety_stock"`
+	LeadTimeDays    sql.NullInt32   `json:"lead_time_days"`
+	AutoReorder     bool            `json:"auto_reorder"`
 	LastReorderDate time.Time       `json:"last_reorder_date"`
-	IsActive        pgtype.Bool     `json:"is_active"`
+	IsActive        bool            `json:"is_active"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 	AvailableQty    interface{}     `json:"available_qty"`
 }
 
-func (q *Queries) ListProductsBelowReorderPoint(ctx context.Context) ([]*ListProductsBelowReorderPointRow, error) {
-	rows, err := q.db.Query(ctx, listProductsBelowReorderPoint)
+func (q *Queries) ListProductsBelowReorderPoint(ctx context.Context) ([]ListProductsBelowReorderPointRow, error) {
+	rows, err := q.db.QueryContext(ctx, listProductsBelowReorderPoint)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListProductsBelowReorderPointRow
+	var items []ListProductsBelowReorderPointRow
 	for rows.Next() {
 		var i ListProductsBelowReorderPointRow
 		if err := rows.Scan(
@@ -284,7 +287,10 @@ func (q *Queries) ListProductsBelowReorderPoint(ctx context.Context) ([]*ListPro
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -300,18 +306,18 @@ LIMIT $2 OFFSET $3
 `
 
 type ListProductsByCategoryParams struct {
-	CategoryID pgtype.Int4 `json:"category_id"`
-	Limit      int32       `json:"limit"`
-	Offset     int32       `json:"offset"`
+	CategoryID sql.NullInt32 `json:"category_id"`
+	Limit      int32         `json:"limit"`
+	Offset     int32         `json:"offset"`
 }
 
-func (q *Queries) ListProductsByCategory(ctx context.Context, arg *ListProductsByCategoryParams) ([]*Product, error) {
-	rows, err := q.db.Query(ctx, listProductsByCategory, arg.CategoryID, arg.Limit, arg.Offset)
+func (q *Queries) ListProductsByCategory(ctx context.Context, arg ListProductsByCategoryParams) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, listProductsByCategory, arg.CategoryID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Product
+	var items []Product
 	for rows.Next() {
 		var i Product
 		if err := rows.Scan(
@@ -339,7 +345,10 @@ func (q *Queries) ListProductsByCategory(ctx context.Context, arg *ListProductsB
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -354,7 +363,7 @@ WHERE product_id = $1
 `
 
 func (q *Queries) SoftDeleteProduct(ctx context.Context, productID int32) error {
-	_, err := q.db.Exec(ctx, softDeleteProduct, productID)
+	_, err := q.db.ExecContext(ctx, softDeleteProduct, productID)
 	return err
 }
 
@@ -365,7 +374,7 @@ WHERE product_id = $1
 `
 
 func (q *Queries) UpdateLastReorderDate(ctx context.Context, productID int32) error {
-	_, err := q.db.Exec(ctx, updateLastReorderDate, productID)
+	_, err := q.db.ExecContext(ctx, updateLastReorderDate, productID)
 	return err
 }
 
@@ -396,25 +405,25 @@ RETURNING product_id, sku, name, description, category_id, unit_price, cost_pric
 type UpdateProductParams struct {
 	ProductID     int32           `json:"product_id"`
 	Name          string          `json:"name"`
-	Description   pgtype.Text     `json:"description"`
-	CategoryID    pgtype.Int4     `json:"category_id"`
+	Description   sql.NullString  `json:"description"`
+	CategoryID    sql.NullInt32   `json:"category_id"`
 	UnitPrice     decimal.Decimal `json:"unit_price"`
 	CostPrice     decimal.Decimal `json:"cost_price"`
-	Barcode       pgtype.Text     `json:"barcode"`
+	Barcode       sql.NullString  `json:"barcode"`
 	Weight        decimal.Decimal `json:"weight"`
-	Dimensions    pgtype.Text     `json:"dimensions"`
-	SupplierID    pgtype.Int4     `json:"supplier_id"`
-	MinStockLevel pgtype.Int4     `json:"min_stock_level"`
-	MaxStockLevel pgtype.Int4     `json:"max_stock_level"`
-	ReorderPoint  pgtype.Int4     `json:"reorder_point"`
-	SafetyStock   pgtype.Int4     `json:"safety_stock"`
-	LeadTimeDays  pgtype.Int4     `json:"lead_time_days"`
-	AutoReorder   pgtype.Bool     `json:"auto_reorder"`
-	IsActive      pgtype.Bool     `json:"is_active"`
+	Dimensions    sql.NullString  `json:"dimensions"`
+	SupplierID    sql.NullInt32   `json:"supplier_id"`
+	MinStockLevel int32           `json:"min_stock_level"`
+	MaxStockLevel sql.NullInt32   `json:"max_stock_level"`
+	ReorderPoint  sql.NullInt32   `json:"reorder_point"`
+	SafetyStock   sql.NullInt32   `json:"safety_stock"`
+	LeadTimeDays  sql.NullInt32   `json:"lead_time_days"`
+	AutoReorder   bool            `json:"auto_reorder"`
+	IsActive      bool            `json:"is_active"`
 }
 
-func (q *Queries) UpdateProduct(ctx context.Context, arg *UpdateProductParams) (*Product, error) {
-	row := q.db.QueryRow(ctx, updateProduct,
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
+	row := q.db.QueryRowContext(ctx, updateProduct,
 		arg.ProductID,
 		arg.Name,
 		arg.Description,
@@ -457,5 +466,5 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg *UpdateProductParams) (
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }

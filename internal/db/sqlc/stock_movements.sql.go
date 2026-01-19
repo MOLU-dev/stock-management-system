@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createStockMovement = `-- name: CreateStockMovement :one
@@ -23,22 +22,22 @@ INSERT INTO stock_movements (
 `
 
 type CreateStockMovementParams struct {
-	ReferenceNumber pgtype.Text  `json:"reference_number"`
-	ProductID       int32        `json:"product_id"`
-	WarehouseID     int32        `json:"warehouse_id"`
-	LocationID      pgtype.Int4  `json:"location_id"`
-	MovementType    MovementType `json:"movement_type"`
-	QuantityBefore  pgtype.Int4  `json:"quantity_before"`
-	QuantityChange  int32        `json:"quantity_change"`
-	QuantityAfter   pgtype.Int4  `json:"quantity_after"`
-	ReferenceID     pgtype.Int4  `json:"reference_id"`
-	ReferenceTable  pgtype.Text  `json:"reference_table"`
-	Notes           pgtype.Text  `json:"notes"`
-	CreatedBy       pgtype.Int4  `json:"created_by"`
+	ReferenceNumber sql.NullString `json:"reference_number"`
+	ProductID       int32          `json:"product_id"`
+	WarehouseID     int32          `json:"warehouse_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	MovementType    MovementType   `json:"movement_type"`
+	QuantityBefore  sql.NullInt32  `json:"quantity_before"`
+	QuantityChange  int32          `json:"quantity_change"`
+	QuantityAfter   sql.NullInt32  `json:"quantity_after"`
+	ReferenceID     sql.NullInt32  `json:"reference_id"`
+	ReferenceTable  sql.NullString `json:"reference_table"`
+	Notes           sql.NullString `json:"notes"`
+	CreatedBy       sql.NullInt32  `json:"created_by"`
 }
 
-func (q *Queries) CreateStockMovement(ctx context.Context, arg *CreateStockMovementParams) (*StockMovement, error) {
-	row := q.db.QueryRow(ctx, createStockMovement,
+func (q *Queries) CreateStockMovement(ctx context.Context, arg CreateStockMovementParams) (StockMovement, error) {
+	row := q.db.QueryRowContext(ctx, createStockMovement,
 		arg.ReferenceNumber,
 		arg.ProductID,
 		arg.WarehouseID,
@@ -69,7 +68,7 @@ func (q *Queries) CreateStockMovement(ctx context.Context, arg *CreateStockMovem
 		&i.MovementDate,
 		&i.CreatedBy,
 	)
-	return &i, err
+	return i, err
 }
 
 const getProductMovementHistory = `-- name: GetProductMovementHistory :many
@@ -89,25 +88,25 @@ type GetProductMovementHistoryParams struct {
 }
 
 type GetProductMovementHistoryRow struct {
-	MovementID      int32        `json:"movement_id"`
-	ReferenceNumber pgtype.Text  `json:"reference_number"`
-	ProductID       int32        `json:"product_id"`
-	WarehouseID     int32        `json:"warehouse_id"`
-	LocationID      pgtype.Int4  `json:"location_id"`
-	MovementType    MovementType `json:"movement_type"`
-	QuantityBefore  pgtype.Int4  `json:"quantity_before"`
-	QuantityChange  int32        `json:"quantity_change"`
-	QuantityAfter   pgtype.Int4  `json:"quantity_after"`
-	ReferenceID     pgtype.Int4  `json:"reference_id"`
-	ReferenceTable  pgtype.Text  `json:"reference_table"`
-	Notes           pgtype.Text  `json:"notes"`
-	MovementDate    time.Time    `json:"movement_date"`
-	CreatedBy       pgtype.Int4  `json:"created_by"`
-	WarehouseName   string       `json:"warehouse_name"`
+	MovementID      int32          `json:"movement_id"`
+	ReferenceNumber sql.NullString `json:"reference_number"`
+	ProductID       int32          `json:"product_id"`
+	WarehouseID     int32          `json:"warehouse_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	MovementType    MovementType   `json:"movement_type"`
+	QuantityBefore  sql.NullInt32  `json:"quantity_before"`
+	QuantityChange  int32          `json:"quantity_change"`
+	QuantityAfter   sql.NullInt32  `json:"quantity_after"`
+	ReferenceID     sql.NullInt32  `json:"reference_id"`
+	ReferenceTable  sql.NullString `json:"reference_table"`
+	Notes           sql.NullString `json:"notes"`
+	MovementDate    time.Time      `json:"movement_date"`
+	CreatedBy       sql.NullInt32  `json:"created_by"`
+	WarehouseName   string         `json:"warehouse_name"`
 }
 
-func (q *Queries) GetProductMovementHistory(ctx context.Context, arg *GetProductMovementHistoryParams) ([]*GetProductMovementHistoryRow, error) {
-	rows, err := q.db.Query(ctx, getProductMovementHistory,
+func (q *Queries) GetProductMovementHistory(ctx context.Context, arg GetProductMovementHistoryParams) ([]GetProductMovementHistoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProductMovementHistory,
 		arg.ProductID,
 		arg.WarehouseID,
 		arg.Limit,
@@ -117,7 +116,7 @@ func (q *Queries) GetProductMovementHistory(ctx context.Context, arg *GetProduct
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetProductMovementHistoryRow
+	var items []GetProductMovementHistoryRow
 	for rows.Next() {
 		var i GetProductMovementHistoryRow
 		if err := rows.Scan(
@@ -139,7 +138,10 @@ func (q *Queries) GetProductMovementHistory(ctx context.Context, arg *GetProduct
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -152,8 +154,8 @@ SELECT movement_id, reference_number, product_id, warehouse_id, location_id, mov
 WHERE movement_id = $1
 `
 
-func (q *Queries) GetStockMovement(ctx context.Context, movementID int32) (*StockMovement, error) {
-	row := q.db.QueryRow(ctx, getStockMovement, movementID)
+func (q *Queries) GetStockMovement(ctx context.Context, movementID int32) (StockMovement, error) {
+	row := q.db.QueryRowContext(ctx, getStockMovement, movementID)
 	var i StockMovement
 	err := row.Scan(
 		&i.MovementID,
@@ -171,7 +173,7 @@ func (q *Queries) GetStockMovement(ctx context.Context, movementID int32) (*Stoc
 		&i.MovementDate,
 		&i.CreatedBy,
 	)
-	return &i, err
+	return i, err
 }
 
 const listStockMovementsByProduct = `-- name: ListStockMovementsByProduct :many
@@ -191,32 +193,32 @@ type ListStockMovementsByProductParams struct {
 }
 
 type ListStockMovementsByProductRow struct {
-	MovementID      int32        `json:"movement_id"`
-	ReferenceNumber pgtype.Text  `json:"reference_number"`
-	ProductID       int32        `json:"product_id"`
-	WarehouseID     int32        `json:"warehouse_id"`
-	LocationID      pgtype.Int4  `json:"location_id"`
-	MovementType    MovementType `json:"movement_type"`
-	QuantityBefore  pgtype.Int4  `json:"quantity_before"`
-	QuantityChange  int32        `json:"quantity_change"`
-	QuantityAfter   pgtype.Int4  `json:"quantity_after"`
-	ReferenceID     pgtype.Int4  `json:"reference_id"`
-	ReferenceTable  pgtype.Text  `json:"reference_table"`
-	Notes           pgtype.Text  `json:"notes"`
-	MovementDate    time.Time    `json:"movement_date"`
-	CreatedBy       pgtype.Int4  `json:"created_by"`
-	ProductName     string       `json:"product_name"`
-	Sku             string       `json:"sku"`
-	WarehouseName   string       `json:"warehouse_name"`
+	MovementID      int32          `json:"movement_id"`
+	ReferenceNumber sql.NullString `json:"reference_number"`
+	ProductID       int32          `json:"product_id"`
+	WarehouseID     int32          `json:"warehouse_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	MovementType    MovementType   `json:"movement_type"`
+	QuantityBefore  sql.NullInt32  `json:"quantity_before"`
+	QuantityChange  int32          `json:"quantity_change"`
+	QuantityAfter   sql.NullInt32  `json:"quantity_after"`
+	ReferenceID     sql.NullInt32  `json:"reference_id"`
+	ReferenceTable  sql.NullString `json:"reference_table"`
+	Notes           sql.NullString `json:"notes"`
+	MovementDate    time.Time      `json:"movement_date"`
+	CreatedBy       sql.NullInt32  `json:"created_by"`
+	ProductName     string         `json:"product_name"`
+	Sku             string         `json:"sku"`
+	WarehouseName   string         `json:"warehouse_name"`
 }
 
-func (q *Queries) ListStockMovementsByProduct(ctx context.Context, arg *ListStockMovementsByProductParams) ([]*ListStockMovementsByProductRow, error) {
-	rows, err := q.db.Query(ctx, listStockMovementsByProduct, arg.ProductID, arg.Limit, arg.Offset)
+func (q *Queries) ListStockMovementsByProduct(ctx context.Context, arg ListStockMovementsByProductParams) ([]ListStockMovementsByProductRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockMovementsByProduct, arg.ProductID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListStockMovementsByProductRow
+	var items []ListStockMovementsByProductRow
 	for rows.Next() {
 		var i ListStockMovementsByProductRow
 		if err := rows.Scan(
@@ -240,7 +242,10 @@ func (q *Queries) ListStockMovementsByProduct(ctx context.Context, arg *ListStoc
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -265,32 +270,32 @@ type ListStockMovementsByTypeParams struct {
 }
 
 type ListStockMovementsByTypeRow struct {
-	MovementID      int32        `json:"movement_id"`
-	ReferenceNumber pgtype.Text  `json:"reference_number"`
-	ProductID       int32        `json:"product_id"`
-	WarehouseID     int32        `json:"warehouse_id"`
-	LocationID      pgtype.Int4  `json:"location_id"`
-	MovementType    MovementType `json:"movement_type"`
-	QuantityBefore  pgtype.Int4  `json:"quantity_before"`
-	QuantityChange  int32        `json:"quantity_change"`
-	QuantityAfter   pgtype.Int4  `json:"quantity_after"`
-	ReferenceID     pgtype.Int4  `json:"reference_id"`
-	ReferenceTable  pgtype.Text  `json:"reference_table"`
-	Notes           pgtype.Text  `json:"notes"`
-	MovementDate    time.Time    `json:"movement_date"`
-	CreatedBy       pgtype.Int4  `json:"created_by"`
-	ProductName     string       `json:"product_name"`
-	Sku             string       `json:"sku"`
-	WarehouseName   string       `json:"warehouse_name"`
+	MovementID      int32          `json:"movement_id"`
+	ReferenceNumber sql.NullString `json:"reference_number"`
+	ProductID       int32          `json:"product_id"`
+	WarehouseID     int32          `json:"warehouse_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	MovementType    MovementType   `json:"movement_type"`
+	QuantityBefore  sql.NullInt32  `json:"quantity_before"`
+	QuantityChange  int32          `json:"quantity_change"`
+	QuantityAfter   sql.NullInt32  `json:"quantity_after"`
+	ReferenceID     sql.NullInt32  `json:"reference_id"`
+	ReferenceTable  sql.NullString `json:"reference_table"`
+	Notes           sql.NullString `json:"notes"`
+	MovementDate    time.Time      `json:"movement_date"`
+	CreatedBy       sql.NullInt32  `json:"created_by"`
+	ProductName     string         `json:"product_name"`
+	Sku             string         `json:"sku"`
+	WarehouseName   string         `json:"warehouse_name"`
 }
 
-func (q *Queries) ListStockMovementsByType(ctx context.Context, arg *ListStockMovementsByTypeParams) ([]*ListStockMovementsByTypeRow, error) {
-	rows, err := q.db.Query(ctx, listStockMovementsByType, arg.MovementType, arg.Limit, arg.Offset)
+func (q *Queries) ListStockMovementsByType(ctx context.Context, arg ListStockMovementsByTypeParams) ([]ListStockMovementsByTypeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockMovementsByType, arg.MovementType, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListStockMovementsByTypeRow
+	var items []ListStockMovementsByTypeRow
 	for rows.Next() {
 		var i ListStockMovementsByTypeRow
 		if err := rows.Scan(
@@ -314,7 +319,10 @@ func (q *Queries) ListStockMovementsByType(ctx context.Context, arg *ListStockMo
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -338,31 +346,31 @@ type ListStockMovementsByWarehouseParams struct {
 }
 
 type ListStockMovementsByWarehouseRow struct {
-	MovementID      int32        `json:"movement_id"`
-	ReferenceNumber pgtype.Text  `json:"reference_number"`
-	ProductID       int32        `json:"product_id"`
-	WarehouseID     int32        `json:"warehouse_id"`
-	LocationID      pgtype.Int4  `json:"location_id"`
-	MovementType    MovementType `json:"movement_type"`
-	QuantityBefore  pgtype.Int4  `json:"quantity_before"`
-	QuantityChange  int32        `json:"quantity_change"`
-	QuantityAfter   pgtype.Int4  `json:"quantity_after"`
-	ReferenceID     pgtype.Int4  `json:"reference_id"`
-	ReferenceTable  pgtype.Text  `json:"reference_table"`
-	Notes           pgtype.Text  `json:"notes"`
-	MovementDate    time.Time    `json:"movement_date"`
-	CreatedBy       pgtype.Int4  `json:"created_by"`
-	ProductName     string       `json:"product_name"`
-	Sku             string       `json:"sku"`
+	MovementID      int32          `json:"movement_id"`
+	ReferenceNumber sql.NullString `json:"reference_number"`
+	ProductID       int32          `json:"product_id"`
+	WarehouseID     int32          `json:"warehouse_id"`
+	LocationID      sql.NullInt32  `json:"location_id"`
+	MovementType    MovementType   `json:"movement_type"`
+	QuantityBefore  sql.NullInt32  `json:"quantity_before"`
+	QuantityChange  int32          `json:"quantity_change"`
+	QuantityAfter   sql.NullInt32  `json:"quantity_after"`
+	ReferenceID     sql.NullInt32  `json:"reference_id"`
+	ReferenceTable  sql.NullString `json:"reference_table"`
+	Notes           sql.NullString `json:"notes"`
+	MovementDate    time.Time      `json:"movement_date"`
+	CreatedBy       sql.NullInt32  `json:"created_by"`
+	ProductName     string         `json:"product_name"`
+	Sku             string         `json:"sku"`
 }
 
-func (q *Queries) ListStockMovementsByWarehouse(ctx context.Context, arg *ListStockMovementsByWarehouseParams) ([]*ListStockMovementsByWarehouseRow, error) {
-	rows, err := q.db.Query(ctx, listStockMovementsByWarehouse, arg.WarehouseID, arg.Limit, arg.Offset)
+func (q *Queries) ListStockMovementsByWarehouse(ctx context.Context, arg ListStockMovementsByWarehouseParams) ([]ListStockMovementsByWarehouseRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStockMovementsByWarehouse, arg.WarehouseID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*ListStockMovementsByWarehouseRow
+	var items []ListStockMovementsByWarehouseRow
 	for rows.Next() {
 		var i ListStockMovementsByWarehouseRow
 		if err := rows.Scan(
@@ -385,7 +393,10 @@ func (q *Queries) ListStockMovementsByWarehouse(ctx context.Context, arg *ListSt
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

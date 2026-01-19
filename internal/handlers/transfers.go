@@ -11,10 +11,10 @@ import (
 )
 
 type TransferHandler struct {
-	queries *db.Queries
+	queries db.SingleDb
 }
 
-func NewTransferHandler(queries *db.Queries) *TransferHandler {
+func NewTransferHandler(queries db.SingleDb) *TransferHandler {
 	return &TransferHandler{queries: queries}
 }
 
@@ -38,15 +38,20 @@ func (h *TransferHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	transferDate := time.Now()
+	if req.TransferDate != nil {
+		transferDate = *req.TransferDate
+	}
+
 	transfer, err := h.queries.CreateStockTransfer(ctx, db.CreateStockTransferParams{
 		TransferNumber:         req.TransferNumber,
-		FromWarehouseID:        req.FromWarehouseID,
-		ToWarehouseID:          req.ToWarehouseID,
+		FromWarehouseID:        int32(req.FromWarehouseID),
+		ToWarehouseID:          int32(req.ToWarehouseID),
 		Status:                 db.TransferStatus(req.Status),
-		TransferDate:           req.TransferDate,
+		TransferDate:           transferDate,
 		ExpectedCompletionDate: req.ExpectedCompletionDate,
-		Notes:                  req.Notes,
-		CreatedBy:              req.CreatedBy,
+		Notes:                  toNullString(req.Notes),
+		CreatedBy:              NullInt32(req.CreatedBy),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create transfer")
@@ -64,11 +69,12 @@ func (h *TransferHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	id64, err := strconv.ParseInt(vars["id"], 10, 32)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid transfer ID")
 		return
 	}
+	id := int32(id64)
 
 	var req UpdateTransferStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -99,11 +105,12 @@ func (h *TransferHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	transferID, err := strconv.ParseInt(vars["id"], 10, 64)
+	transferID64, err := strconv.ParseInt(vars["id"], 10, 32)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid transfer ID")
 		return
 	}
+	transferID := int32(transferID64)
 
 	var req CreateTransferItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -113,10 +120,10 @@ func (h *TransferHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 
 	item, err := h.queries.CreateStockTransferItem(ctx, db.CreateStockTransferItemParams{
 		TransferID:     transferID,
-		ProductID:      req.ProductID,
+		ProductID:      int32(req.ProductID),
 		Quantity:       req.Quantity,
-		FromLocationID: req.FromLocationID,
-		ToLocationID:   req.ToLocationID,
+		FromLocationID: toNullInt32FromInt64(req.FromLocationID),
+		ToLocationID:   toNullInt32FromInt64(req.ToLocationID),
 	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create item")
@@ -135,11 +142,12 @@ func (h *TransferHandler) UpdateItemQuantities(w http.ResponseWriter, r *http.Re
 	ctx := r.Context()
 	vars := mux.Vars(r)
 
-	itemID, err := strconv.ParseInt(vars["itemId"], 10, 64)
+	itemID64, err := strconv.ParseInt(vars["itemId"], 10, 32)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid item ID")
 		return
 	}
+	itemID := int32(itemID64)
 
 	var req UpdateTransferQuantitiesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
