@@ -6,11 +6,13 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
 	ActivateSupplier(ctx context.Context, supplierID int32) error
 	ApproveStockAdjustment(ctx context.Context, arg ApproveStockAdjustmentParams) (StockAdjustment, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreatePurchaseOrder(ctx context.Context, arg CreatePurchaseOrderParams) (PurchaseOrder, error)
@@ -27,7 +29,10 @@ type Querier interface {
 	DeactivateLocation(ctx context.Context, locationID int32) error
 	DeactivateSupplier(ctx context.Context, supplierID int32) error
 	DeactivateWarehouse(ctx context.Context, warehouseID int32) error
+	DeleteCategory(ctx context.Context, categoryID int32) error
 	GetActiveStocktakes(ctx context.Context) ([]GetActiveStocktakesRow, error)
+	GetCategory(ctx context.Context, categoryID int32) (Category, error)
+	GetCategoryByCode(ctx context.Context, categoryCode string) (Category, error)
 	GetInventory(ctx context.Context, inventoryID int32) (Inventory, error)
 	GetInventoryByLocation(ctx context.Context, arg GetInventoryByLocationParams) (Inventory, error)
 	GetInventoryByProductWarehouse(ctx context.Context, arg GetInventoryByProductWarehouseParams) (Inventory, error)
@@ -52,6 +57,7 @@ type Querier interface {
 	ListActiveSuppliers(ctx context.Context) ([]Supplier, error)
 	ListAllSuppliers(ctx context.Context, arg ListAllSuppliersParams) ([]Supplier, error)
 	ListAllWarehouses(ctx context.Context) ([]Warehouse, error)
+	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error)
 	ListExpiringInventory(ctx context.Context) ([]ListExpiringInventoryRow, error)
 	ListInventoryByProduct(ctx context.Context, productID int32) ([]ListInventoryByProductRow, error)
 	ListInventoryByWarehouse(ctx context.Context, arg ListInventoryByWarehouseParams) ([]ListInventoryByWarehouseRow, error)
@@ -61,17 +67,20 @@ type Querier interface {
 	ListProductsByCategory(ctx context.Context, arg ListProductsByCategoryParams) ([]Product, error)
 	ListPurchaseOrders(ctx context.Context, arg ListPurchaseOrdersParams) ([]ListPurchaseOrdersRow, error)
 	ListPurchaseOrdersByStatus(ctx context.Context, arg ListPurchaseOrdersByStatusParams) ([]ListPurchaseOrdersByStatusRow, error)
+	ListRootCategories(ctx context.Context) ([]Category, error)
 	ListStockMovementsByProduct(ctx context.Context, arg ListStockMovementsByProductParams) ([]ListStockMovementsByProductRow, error)
 	ListStockMovementsByType(ctx context.Context, arg ListStockMovementsByTypeParams) ([]ListStockMovementsByTypeRow, error)
 	ListStockMovementsByWarehouse(ctx context.Context, arg ListStockMovementsByWarehouseParams) ([]ListStockMovementsByWarehouseRow, error)
 	ListStocktakes(ctx context.Context, arg ListStocktakesParams) ([]ListStocktakesRow, error)
 	ListStocktakesByWarehouse(ctx context.Context, warehouseID int32) ([]StockTake, error)
+	ListSubCategories(ctx context.Context, parentCategoryID sql.NullInt32) ([]Category, error)
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error)
 	ListWarehouses(ctx context.Context) ([]Warehouse, error)
 	ReleaseInventoryReservation(ctx context.Context, arg ReleaseInventoryReservationParams) (Inventory, error)
 	ReserveInventory(ctx context.Context, arg ReserveInventoryParams) (Inventory, error)
 	SearchSuppliers(ctx context.Context, arg SearchSuppliersParams) ([]Supplier, error)
 	SoftDeleteProduct(ctx context.Context, productID int32) error
+	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	UpdateInventoryQuantity(ctx context.Context, arg UpdateInventoryQuantityParams) (Inventory, error)
 	UpdateInventoryStatus(ctx context.Context, arg UpdateInventoryStatusParams) (Inventory, error)
 	UpdateLastReorderDate(ctx context.Context, productID int32) error

@@ -1,0 +1,268 @@
+=== HEALTH CHECK ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100     2  100     2    0     0   2301      0 --:--:-- --:--:-- --:--:--  2000
+OK
+
+=== WAREHOUSES ===
+Listing warehouses...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0100  1455  100  1455    0     0    483      0  0:00:03  0:00:03 --:--:--   483
+[{"warehouse_id":1,"code":"WH-001","name":"Main Warehouse","address":{"String":"123 Storage Street, Lagos","Valid":true},"contact_person":{"String":"John Doe","Valid":true},"contact_phone":{"String":"+234-123-456-7890","Valid":true},"contact_email":{"String":"john@warehouse.com","Valid":true},"is_active":true,"created_at":"2026-01-19T09:48:05.627433Z"},{"warehouse_id":2,"code":"WH-002","name":"Secondary Warehouse","address":{"String":"456 Storage Avenue, Abuja","Valid":true},"contact_person":{"String":"Jane Smith","Valid":true},"contact_phone":{"String":"+234-987-654-3210","Valid":true},"contact_email":{"String":"jane@warehouse.com","Valid":true},"is_active":true,"created_at":"2026-01-19T09:48:05.759799Z"},{"warehouse_id":7,"code":"WH-TEST-001","name":"Test Main Warehouse","address":{"String":"123 Test Street, Lagos","Valid":true},"contact_person":{"String":"Test Manager","Valid":true},"contact_phone":{"String":"+234-111-222-3333","Valid":true},"contact_email":{"String":"test@warehouse.com","Valid":true},"is_active":true,"created_at":"2026-01-19T10:25:31.372459Z"},{"warehouse_id":8,"code":"WH-TEST-002","name":"Test Secondary Warehouse","address":{"String":"456 Test Avenue, Abuja","Valid":true},"contact_person":{"String":"Test Assistant","Valid":true},"contact_phone":{"String":"+234-444-555-6666","Valid":true},"contact_email":{"String":"test2@warehouse.com","Valid":true},"is_active":true,"created_at":"2026-01-19T10:25:31.400137Z"}]
+
+
+Creating main warehouse (if not exists)...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   230    0     0  100   230      0   1139 --:--:-- --:--:-- --:--:--  1138100   269  100    39  100   230     84    498 --:--:-- --:--:-- --:--:--   582
+{"error":"Failed to create warehouse"}
+
+
+Creating secondary warehouse...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   277  100    39  100   238   6937  42333 --:--:-- --:--:-- --:--:-- 55400
+{"error":"Failed to create warehouse"}
+
+
+=== CATEGORIES ===
+Creating test category...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   136  100    19  100   117  22836   137k --:--:-- --:--:-- --:--:--  132k
+404 page not found
+
+
+=== LOCATIONS ===
+Getting warehouse IDs...
+Creating locations in warehouse 1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   158  100    38  100   120     80    254 --:--:-- --:--:-- --:--:--   335
+{"error":"Failed to create location"}
+
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   158  100    38  100   120   6190  19550 --:--:-- --:--:-- --:--:-- 26333
+{"error":"Failed to create location"}
+
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100    38  100   119  15334  48022 --:--:-- --:--:-- --:--:-- 78500
+{"error":"Failed to create location"}
+
+
+Listing locations in warehouse 1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   924  100   924    0     0   334k      0 --:--:-- --:--:-- --:--:--  451k
+[{"location_id":1,"warehouse_id":1,"location_code":"A-01-01","aisle":{"String":"A","Valid":true},"shelf":{"String":"01","Valid":true},"bin":{"String":"01","Valid":true},"max_capacity":{"Int32":100,"Valid":true},"is_active":true},{"location_id":2,"warehouse_id":1,"location_code":"A-01-02","aisle":{"String":"A","Valid":true},"shelf":{"String":"01","Valid":true},"bin":{"String":"02","Valid":true},"max_capacity":{"Int32":100,"Valid":true},"is_active":true},{"location_id":7,"warehouse_id":1,"location_code":"TEST-A-01-01","aisle":{"String":"A","Valid":true},"shelf":{"String":"01","Valid":true},"bin":{"String":"01","Valid":true},"max_capacity":{"Int32":100,"Valid":true},"is_active":true},{"location_id":8,"warehouse_id":1,"location_code":"TEST-A-01-02","aisle":{"String":"A","Valid":true},"shelf":{"String":"01","Valid":true},"bin":{"String":"02","Valid":true},"max_capacity":{"Int32":100,"Valid":true},"is_active":true}]
+
+
+=== SUPPLIERS ===
+Creating first supplier...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   390  100    38  100   352    229   2122 --:--:-- --:--:-- --:--:--  2349100   390  100    38  100   352    228   2120 --:--:-- --:--:-- --:--:--  2349
+{"error":"Failed to create supplier"}
+
+
+Creating second supplier...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   402  100    38  100   364   9150  87647 --:--:-- --:--:-- --:--:--   98k
+{"error":"Failed to create supplier"}
+
+
+Listing all suppliers...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100     5  100     5    0     0   2008      0 --:--:-- --:--:-- --:--:--  2500
+null
+
+
+=== PRODUCTS ===
+Creating first product...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   622  100   130  100   492    203    770 --:--:-- --:--:-- --:--:--   974
+{"error":"Failed to create product: ERROR: duplicate key value violates unique constraint \"products_sku_key\" (SQLSTATE 23505)"}
+
+
+Creating second product...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   608  100   130  100   478  67322   241k --:--:-- --:--:-- --:--:--  593k
+{"error":"Failed to create product: ERROR: duplicate key value violates unique constraint \"products_sku_key\" (SQLSTATE 23505)"}
+
+
+Creating third product...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   622  100   130  100   492  36858   136k --:--:-- --:--:-- --:--:--  202k
+{"error":"Failed to create product: ERROR: duplicate key value violates unique constraint \"products_sku_key\" (SQLSTATE 23505)"}
+
+
+Listing products...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    37  100    37    0     0    193      0 --:--:-- --:--:-- --:--:--   193
+{"error":"Failed to fetch products"}
+
+
+=== INVENTORY ===
+Listing all inventory...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    33  100    33    0     0  15834      0 --:--:-- --:--:-- --:--:-- 16500
+{"message":"list all inventory"}
+
+
+=== PURCHASE ORDERS ===
+Creating purchase order...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   309  100    44  100   265    141    854 --:--:-- --:--:-- --:--:--  1000
+{"error":"Failed to create purchase order"}
+
+
+Creating second purchase order...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   310  100    44  100   266   9797  59229 --:--:-- --:--:-- --:--:-- 77500
+{"error":"Failed to create purchase order"}
+
+
+Listing purchase orders...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1878  100  1878    0     0   7013      0 --:--:-- --:--:-- --:--:--  7033
+[{"po_id":4,"po_number":"PO-2026-001","supplier_id":1,"order_date":"2026-01-19T00:00:00Z","expected_delivery_date":"2026-01-26T00:00:00Z","status":"pending","total_amount":"1000","notes":{"String":"Urgent order for Q1 stock","Valid":true},"created_by":{"Int32":1,"Valid":true},"created_at":"2026-01-19T10:07:50.915933Z","supplier_name":{"String":"ElectroParts Inc.","Valid":true}},{"po_id":5,"po_number":"PO-2026-002","supplier_id":2,"order_date":"2026-01-19T00:00:00Z","expected_delivery_date":"2026-02-02T00:00:00Z","status":"pending","total_amount":"2500","notes":{"String":"Regular monthly order","Valid":true},"created_by":{"Int32":1,"Valid":true},"created_at":"2026-01-19T10:07:50.946197Z","supplier_name":{"String":"Global Components Ltd.","Valid":true}},{"po_id":6,"po_number":"PO-WORKFLOW-001","supplier_id":3,"order_date":"2026-01-19T00:00:00Z","expected_delivery_date":"2026-01-26T00:00:00Z","status":"pending","total_amount":"1250","notes":{"String":"","Valid":false},"created_by":{"Int32":1,"Valid":true},"created_at":"2026-01-19T10:07:51.445021Z","supplier_name":{"String":"Workflow Test Supplier","Valid":true}},{"po_id":7,"po_number":"PO-TEST-001","supplier_id":1,"order_date":"2026-01-19T00:00:00Z","expected_delivery_date":"2026-01-26T00:00:00Z","status":"pending","total_amount":"1000","notes":{"String":"Test urgent order","Valid":true},"created_by":{"Int32":1,"Valid":true},"created_at":"2026-01-19T10:25:31.689406Z","supplier_name":{"String":"ElectroParts Inc.","Valid":true}},{"po_id":8,"po_number":"PO-TEST-002","supplier_id":2,"order_date":"2026-01-19T00:00:00Z","expected_delivery_date":"2026-02-02T00:00:00Z","status":"pending","total_amount":"2500","notes":{"String":"Test regular order","Valid":true},"created_by":{"Int32":1,"Valid":true},"created_at":"2026-01-19T10:25:31.708661Z","supplier_name":{"String":"Global Components Ltd.","Valid":true}}]
+
+
+=== PURCHASE ORDER ITEMS ===
+Adding items to purchase order 1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   174  100    34  100   140    192    793 --:--:-- --:--:-- --:--:--   988
+{"error":"Failed to create item"}
+
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   175  100    34  100   141  12269  50884 --:--:-- --:--:-- --:--:-- 87500
+{"error":"Failed to create item"}
+
+
+Adding items to purchase order 2...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   174  100    34  100   140  15917  65543 --:--:-- --:--:-- --:--:-- 87000
+{"error":"Failed to create item"}
+
+
+Getting items for purchase order 1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100     5  100     5    0     0   2055      0 --:--:-- --:--:-- --:--:--  2500
+null
+
+
+=== RECEIVING PURCHASE ORDER ITEMS ===
+Receiving items from PO 1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    81  100    35  100    46    177    233 --:--:-- --:--:-- --:--:--   411100    81  100    35  100    46    177    233 --:--:-- --:--:-- --:--:--   411
+{"error":"Failed to receive item"}
+
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    82  100    35  100    47   9482  12733 --:--:-- --:--:-- --:--:-- 27333
+{"error":"Failed to receive item"}
+
+
+Receiving partial shipment from PO 2...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    81  100    35  100    46   3267   4293 --:--:-- --:--:-- --:--:--  8100
+{"error":"Failed to receive item"}
+
+
+=== INVENTORY CHECK ===
+Listing all inventory...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    33  100    33    0     0   8343      0 --:--:-- --:--:-- --:--:-- 11000
+{"message":"list all inventory"}
+
+
+Listing inventory in warehouse 1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100     5  100     5    0     0     48      0 --:--:-- --:--:-- --:--:--    48
+null
+
+
+=== STOCK MOVEMENTS ===
+Listing stock movements...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    19  100    19    0     0  21276      0 --:--:-- --:--:-- --:--:-- 19000
+404 page not found
+
+
+=== STOCK ADJUSTMENTS ===
+Creating stock adjustment...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   260  100    40  100   220    301   1660 --:--:-- --:--:-- --:--:--  1969
+{"error":"Failed to create adjustment"}
+
+
+Creating adjustment item...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   179  100    34  100   145     50    213 --:--:-- --:--:-- --:--:--   264100   179  100    34  100   145     50    213 --:--:-- --:--:-- --:--:--   264
+{"error":"Failed to create item"}
+
+
+=== STOCK TRANSFERS ===
+Creating stock transfer...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   321  100    38  100   283    592   4410 --:--:-- --:--:-- --:--:--  5015
+{"error":"Failed to create transfer"}
+
+
+=== STOCKTAKES ===
+Creating stocktake...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   236  100    39  100   197   1266   6399 --:--:-- --:--:-- --:--:--  7866
+{"error":"Failed to create stocktake"}
+
+
+=== TEST SUMMARY ===
+
+Test operations completed.
+Check the responses above for any errors.
+
+If you see 'Failed to create' errors, the records may already exist.
+If you see SQL errors, check your database schema and data.
+
+To clean up test data, you can run:
+DELETE FROM stocktakes WHERE stocktake_number LIKE 'ST-TEST%';
+DELETE FROM stock_transfers WHERE transfer_number LIKE 'TRF-TEST%';
+DELETE FROM stock_adjustments WHERE adjustment_number LIKE 'ADJ-TEST%';
+DELETE FROM purchase_order_items WHERE purchase_order_id IN (SELECT po_id FROM purchase_orders WHERE po_number LIKE 'PO-TEST%');
+DELETE FROM purchase_orders WHERE po_number LIKE 'PO-TEST%';
+DELETE FROM inventory_items WHERE product_id IN (SELECT product_id FROM products WHERE sku LIKE 'TEST-%');
+DELETE FROM products WHERE sku LIKE 'TEST-%';
+DELETE FROM suppliers WHERE code LIKE 'SUP-TEST%';
+DELETE FROM locations WHERE location_code LIKE 'TEST-%';
+DELETE FROM warehouses WHERE code LIKE 'WH-TEST%';
+DELETE FROM categories WHERE category_code = 'CAT-TEST';

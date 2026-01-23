@@ -22,6 +22,7 @@ func New(queries *db.Queries, jwtSecret string) http.Handler {
 	stocktakeHandler := handlers.NewStocktakeHandler(queries)
 	warehouseHandler := handlers.NewWarehouseHandler(queries)
 	supplierHandler := handlers.NewSupplierHandler(queries) // Add this line
+	categoryHandler := handlers.NewCategoryHandler(queries)
 
 	// Global middleware
 	r.Use(middleware.Logger)
@@ -136,6 +137,17 @@ func New(queries *db.Queries, jwtSecret string) http.Handler {
 	suppliers.HandleFunc("/{id}/activate", supplierHandler.Activate).Methods("POST")
 	suppliers.HandleFunc("/{id}/products", supplierHandler.GetProducts).Methods("GET")
 	suppliers.HandleFunc("/{id}/performance", supplierHandler.GetPerformance).Methods("GET")
+
+	// Categories
+	categories := api.PathPrefix("/categories").Subrouter()
+	categories.HandleFunc("", categoryHandler.List).Methods("GET")
+	categories.HandleFunc("", categoryHandler.Create).Methods("POST")
+	categories.HandleFunc("/root", categoryHandler.ListRoot).Methods("GET")
+	categories.HandleFunc("/{id}", categoryHandler.Get).Methods("GET")
+	categories.HandleFunc("/{id}", categoryHandler.Update).Methods("PUT")
+	categories.HandleFunc("/{id}", categoryHandler.Delete).Methods("DELETE")
+	categories.HandleFunc("/code/{code}", categoryHandler.GetByCode).Methods("GET")
+	categories.HandleFunc("/{id}/subcategories", categoryHandler.ListSubCategories).Methods("GET")
 
 	return r
 }

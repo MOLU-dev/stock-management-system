@@ -245,7 +245,7 @@ type ListProductsBelowReorderPointRow struct {
 	SafetyStock     sql.NullInt32   `json:"safety_stock"`
 	LeadTimeDays    sql.NullInt32   `json:"lead_time_days"`
 	AutoReorder     bool            `json:"auto_reorder"`
-	LastReorderDate time.Time       `json:"last_reorder_date"`
+	LastReorderDate sql.NullTime    `json:"last_reorder_date"`
 	IsActive        bool            `json:"is_active"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`

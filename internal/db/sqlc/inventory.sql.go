@@ -124,11 +124,11 @@ type ListExpiringInventoryRow struct {
 	Quantity          int32           `json:"quantity"`
 	ReservedQuantity  int32           `json:"reserved_quantity"`
 	BatchNumber       sql.NullString  `json:"batch_number"`
-	ExpiryDate        time.Time       `json:"expiry_date"`
-	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	ExpiryDate        sql.NullTime    `json:"expiry_date"`
+	ManufacturingDate sql.NullTime    `json:"manufacturing_date"`
 	SerialNumber      sql.NullString  `json:"serial_number"`
 	Status            InventoryStatus `json:"status"`
-	LastCountedDate   time.Time       `json:"last_counted_date"`
+	LastCountedDate   sql.NullTime    `json:"last_counted_date"`
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
 	ProductName       string          `json:"product_name"`
@@ -195,11 +195,11 @@ type ListInventoryByProductRow struct {
 	Quantity          int32           `json:"quantity"`
 	ReservedQuantity  int32           `json:"reserved_quantity"`
 	BatchNumber       sql.NullString  `json:"batch_number"`
-	ExpiryDate        time.Time       `json:"expiry_date"`
-	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	ExpiryDate        sql.NullTime    `json:"expiry_date"`
+	ManufacturingDate sql.NullTime    `json:"manufacturing_date"`
 	SerialNumber      sql.NullString  `json:"serial_number"`
 	Status            InventoryStatus `json:"status"`
-	LastCountedDate   time.Time       `json:"last_counted_date"`
+	LastCountedDate   sql.NullTime    `json:"last_counted_date"`
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
 	WarehouseName     string          `json:"warehouse_name"`
@@ -269,11 +269,11 @@ type ListInventoryByWarehouseRow struct {
 	Quantity          int32           `json:"quantity"`
 	ReservedQuantity  int32           `json:"reserved_quantity"`
 	BatchNumber       sql.NullString  `json:"batch_number"`
-	ExpiryDate        time.Time       `json:"expiry_date"`
-	ManufacturingDate time.Time       `json:"manufacturing_date"`
+	ExpiryDate        sql.NullTime    `json:"expiry_date"`
+	ManufacturingDate sql.NullTime    `json:"manufacturing_date"`
 	SerialNumber      sql.NullString  `json:"serial_number"`
 	Status            InventoryStatus `json:"status"`
-	LastCountedDate   time.Time       `json:"last_counted_date"`
+	LastCountedDate   sql.NullTime    `json:"last_counted_date"`
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
 	ProductName       string          `json:"product_name"`
